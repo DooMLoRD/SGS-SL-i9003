@@ -1,0 +1,9 @@
+cp Kernel/arch/arm/boot/zImage final_files/.
+cp Kernel/samsung/gps/gps.ko final_files/.
+cp Kernel/samsung/vibetonz/vibetonz.ko final_files/.
+cp Kernel/samsung/battery/samsung_battery.ko final_files/.
+cp Kernel/samsung/bma222/yas_acc_kernel_driver.ko final_files/.
+cp Kernel/samsung/orientation/yas_ori_kernel_driver.ko final_files/.
+cp Kernel/samsung/yas529/yas_mag_kernel_driver.ko final_files/.
+cp Kernel/samsung/fm_si4709/Si4709_driver.ko final_files/.
+cp Kernel/samsung/gp2a/gp2a.ko final_files/.
