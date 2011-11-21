@@ -1,0 +1,5 @@
+for i in $(du -h | grep 4.0K | awk '{print $2}')
+do
+	echo "this> $i"
+	touch $i/.gitignore
+done

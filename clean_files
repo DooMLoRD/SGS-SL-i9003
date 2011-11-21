@@ -1,0 +1,6 @@
+###NEW
+rm final_files/zImage
+rm final_files/*.ko
+rm final_files/*.tar
+rm final_files/*.gz
+rm final_files/*.img
