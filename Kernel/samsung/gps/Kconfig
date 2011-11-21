@@ -1,5 +1,0 @@
-
-config SUPPORT_GPS
-	tristate "Support GPIO control for GPS"
-	default n
-
