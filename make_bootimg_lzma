@@ -1,0 +1,7 @@
+### CREATE BOOTIMG
+echo "CREATE BOOTIMG"
+cd final_files/
+./create_boot.img_lzma.sh
+cd ..
+### CREATE BOOTIMG
+echo "DONE"

@@ -1,0 +1,25 @@
+### COPYING MODULES TO RAMDISK
+echo "COPYING MODULES TO RAMDISK"
+cp final_files/pcbc.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/crypto/.
+cp final_files/btwilink.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/drivers/bluetooth/.
+cp final_files/st_drv.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/drivers/misc/ti-st/.
+cp final_files/samsung_battery.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/battery/.
+cp final_files/scsi_wait_scan.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/drivers/scsi/.
+cp final_files/yas_acc_kernel_driver.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/bma222/.
+cp final_files/gp2a.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/gp2a/.
+cp final_files/Si4709_driver.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/fm_si4709/.
+cp final_files/gps.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/gps/.
+cp final_files/yas_ori_kernel_driver.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/orientation/.
+cp final_files/vibetonz.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/vibetonz/.
+cp final_files/yas_mag_kernel_driver.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/yas529/.
+cp final_files/param.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/param/.
+### REPACKING RAMDISK
+echo "REPACKING RAMDISK"
+cd ramdisks/WIP/
+for i in $(find . | grep .gitignore | grep './')
+do
+	rm $i
+done
+find . | cpio -o -H newc | lzma > ../../final_files/newramdisk.cpio.lzma
+cd ../../
+
