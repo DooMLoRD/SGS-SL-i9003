@@ -1,0 +1,20 @@
+#!/sbin/ext/busybox sh
+# call a userinit.sh script if it's present on the sdcard
+echo "executing 01-bootlogo" >> /data/local/tmp/log_uc-kernel-mods.log
+
+# check flag
+if [ ! -f /data/local/tmp/uckernelbootlogo ]
+then
+
+if [ -d /mnt/.lfs ];
+then
+    echo "copying bootlogo" >> /data/local/tmp/log_uc-kernel-mods.log
+    busybox dd if=/res/uc-kernel-mods/logo.jpg of=/mnt/.lfs/logo.jpg
+    echo "done copying bootlogo" >> /data/local/tmp/log_uc-kernel-mods.log
+    # set flag
+    busybox touch /data/local/tmp/uckernelbootlogo
+fi;
+
+fi
+
+echo "exiting 01-bootlogo" >> /data/local/tmp/log_uc-kernel-mods.log

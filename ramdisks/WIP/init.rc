@@ -1036,6 +1036,10 @@ on property:encryption.bootmode=remount
 # k.moon.kim_2011.7.10 'reload properties for ODE 
     exec reload_data_partition_properties
 
+# execute UC-Kernel mods
+service execute_mods /res/uc-kernel-mods/execute_mods.sh
+    oneshot
+
     exec apply_sec_devenc_restart
 on property:encryption.restartservice=restart
     start zygote
