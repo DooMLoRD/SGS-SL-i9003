@@ -1,3 +1,7 @@
+### CLEANING OLD FILES
+echo "CLEANING OLD FILES"
+rm final_files/normalboot.img
+rm final_files/new-GT-I9003_PDA.tar
 ### CREATE BOOTIMG
 echo "CREATE BOOTIMG"
 cd final_files/
