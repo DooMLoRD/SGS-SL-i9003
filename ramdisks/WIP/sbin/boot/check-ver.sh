@@ -8,6 +8,10 @@ if [ $SDIFF != $SORIG ]
 then
 # Remount system RW
     /sbin/ext/busybox mount -o remount,rw /system
+
+# Remove the cf-root installed flag
+    /sbin/ext/busybox rm -fr /system/cfroot/
+
 # Patch module version for wifi drivers
     /sbin/ext/busybox sh /sbin/boot/patch-ver.sh $KFILE /system/etc/wifi/tiwlan_drv.ko
     /sbin/ext/busybox sh /sbin/boot/patch-ver.sh $KFILE /system/etc/wifi/softap/tiap_drv.ko

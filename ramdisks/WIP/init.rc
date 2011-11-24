@@ -21,6 +21,7 @@ sysclktz 0
 loglevel 3
 
 # setup the global environment
+    export TERMINFO /system/etc/terminfo
     export PATH /sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
 # SEC_SECURITYLAB_LATONA_DEVICE_ENCRYPTION: include /lib
     export LD_LIBRARY_PATH /lib:/vendor/lib:/system/lib

@@ -12,6 +12,7 @@ start adbd
 
 if [ -f /cache/recovery/command ];
 then
+  /sbin/ext/busybox mkdir -p /cache/svox
   cp /res/keys-samsung /res/keys
   recovery-samsung
 else

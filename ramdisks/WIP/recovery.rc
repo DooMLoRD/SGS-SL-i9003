@@ -57,8 +57,8 @@ on early-fs
 
 on fs
     mount tmpfs tmpfs /tmp
-    mount ext4 /dev/block/stl9 /system
     mount rfs /dev/block/stl9 /system check=no
+    mount ext4 /dev/block/stl9 /system
     mount vfat /dev/block/mmcblk1p1 /sdcard
 
 # SEC_DMCRYPT for MC_CRYPT_ROOT before apply_disk_policy or apply_sec_devenc_init

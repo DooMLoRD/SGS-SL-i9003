@@ -16,6 +16,7 @@ mount -t vfat /dev/block/mmcblk0p1 /sdcard/external_sd
 if [ ! -d /sdcard/.android_secure ]; then
     mkdir /sdcard/.android_secure
 fi
+
 if [ ! -d /sdcard/external_sd/.android_secure ]; then
     mkdir /sdcard/external_sd/.android_secure
 fi
@@ -23,10 +24,9 @@ fi
 ASEC=`find /sdcard/external_sd/.android_secure | wc -l`
 if [ "$ASEC" -gt 1 ]; then
     busybox mount --bind /sdcard/external_sd/.android_secure /sdcard/.android_secure
-  fi;
 fi
 
-umount /dbdata
+umount /datadata
 
 # Restart with root hacked adbd
 echo msc_adb > /dev/usb_device_mode
@@ -34,7 +34,6 @@ touch /tmp/recovery.log
 sync
 
 NEEDS_ADBD=$(ps | grep adbd | grep -v grep)
-if [ -z "$NEEDS_ADBD" ]
-then
+if [ -z "$NEEDS_ADBD" ]; then
     /sbin/adbd recovery &
 fi
