@@ -13,3 +13,12 @@ cp kernel/samsung/orientation/yas_ori_kernel_driver.ko final_files/.
 cp kernel/samsung/vibetonz/vibetonz.ko final_files/.
 cp kernel/samsung/yas529/yas_mag_kernel_driver.ko final_files/.
 cp kernel/samsung/param/param.ko final_files/.
+### Stripping modules
+echo "Stripping modules"
+cd final_files/
+for i in $(find . | grep .ko | grep './')
+do
+        echo $i
+	/home/doomlord/android/system/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-strip --strip-unneeded $i
+done
+
