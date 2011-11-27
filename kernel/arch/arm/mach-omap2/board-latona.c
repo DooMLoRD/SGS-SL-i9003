@@ -437,7 +437,7 @@ static struct opp_frequencies opp_freq_add_table[] __initdata = {
 	.iva = 660000000,
   },
   {
-	.mpu = 1000000000,
+	.mpu = 1100000000,
 	.iva =  800000000,
   },
 #if 0

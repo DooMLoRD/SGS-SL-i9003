@@ -182,7 +182,7 @@ static int __init omap_clk_setup(char *str)
 		return 1;
 
 	if (mpurate < 1000)
-		mpurate *= 1000000;
+		mpurate *= 1100000;
 
 	return 1;
 }
