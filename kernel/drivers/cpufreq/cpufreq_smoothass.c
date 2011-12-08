@@ -470,6 +470,11 @@ static int cpufreq_governor_smoothass(struct cpufreq_policy *new_policy,
 	int rc;
 	struct smoothass_info_s *this_smoothass = &per_cpu(smoothass_info, cpu);
 	
+	unsigned int min_freq = ~0;
+	unsigned int max_freq = 0;
+	unsigned int i;
+	struct cpufreq_frequency_table *freq_table;	
+
 	switch (event) {
 	case CPUFREQ_GOV_START:
 		if ((!cpu_online(cpu)) || (!new_policy->cur))
@@ -492,10 +497,24 @@ static int cpufreq_governor_smoothass(struct cpufreq_policy *new_policy,
 		pm_idle = cpufreq_idle;
 
 		this_smoothass->cur_policy = new_policy;
-		this_smoothass->cur_policy->max = 1401600;
-		this_smoothass->cur_policy->min = 122880;
-		this_smoothass->cur_policy->cur = 1401600;
+		this_smoothass->cur_policy->max = new_policy->max;
+		this_smoothass->cur_policy->min = new_policy->min;
+		this_smoothass->cur_policy->cur = new_policy->cur;
 		this_smoothass->enable = 1;
+				
+		freq_table = cpufreq_frequency_get_table(new_policy->cpu);
+		for (i = 0; (freq_table[i].frequency != CPUFREQ_TABLE_END); i++) {
+			unsigned int freq = freq_table[i].frequency;
+			if (freq == CPUFREQ_ENTRY_INVALID) {
+				continue;
+			}
+			if (freq < min_freq)	
+				min_freq = freq;
+			if (freq > max_freq)
+				max_freq = freq;
+		}
+		sleep_max_freq = min_freq;								//Minimum CPU frequency in table
+		up_min_freq = max_freq;
 
 		// notice no break here!
 
