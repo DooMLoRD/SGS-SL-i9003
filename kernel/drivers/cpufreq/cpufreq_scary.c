@@ -597,6 +597,10 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	struct cpu_dbs_info_s *this_dbs_info;
 	unsigned int j;
 	int rc;
+	unsigned int min_freq = ~0;
+	unsigned int max_freq = 0;
+	unsigned int i;	
+	struct cpufreq_frequency_table *freq_table;	
     suspended=0;
 
 	this_dbs_info = &per_cpu(cs_cpu_dbs_info, cpu);
@@ -662,6 +666,21 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		mutex_unlock(&dbs_mutex);
 
 		dbs_timer_init(this_dbs_info);
+		freq_table = cpufreq_frequency_get_table(policy->cpu);
+		for (i = 0; (freq_table[i].frequency != CPUFREQ_TABLE_END); i++) {
+			unsigned int freq = freq_table[i].frequency;
+			if (freq == CPUFREQ_ENTRY_INVALID) {
+				continue;
+			}
+			if (freq < min_freq)	
+				min_freq = freq;
+			if (freq > max_freq)
+				max_freq = freq;
+		}
+		sleep_min_freq = min_freq;
+		sleep_max_freq = min_freq;								//Minimum CPU frequency in table
+		sleep_prev_freq = min_freq;								//Minimum CPU frequency in table
+		sleep_prev_max= min_freq;								//Minimum CPU frequency in table
 
 		break;
 
