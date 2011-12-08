@@ -38,8 +38,11 @@
 #define DEF_FREQUENCY_UP_THRESHOLD			(50)
 #define DEF_FREQUENCY_DOWN_THRESHOLD		(15)
 #define FREQ_STEP_DOWN 						(160000)
+static unsigned int step_down;
 #define FREQ_SLEEP_MAX 						(320000)
+static unsigned int sleep_max;
 #define FREQ_AWAKE_MIN 						(480000)
+static unsigned int awake_min;
 #define FREQ_STEP_UP_SLEEP_PERCENT 			(20)
 
 /*
@@ -403,12 +406,12 @@ static void dbs_check_cpu(int cpu)
 			this_dbs_info->requested_freq = policy->max;
 		
 		//Screen off mode
-		if (suspended && this_dbs_info->requested_freq > FREQ_SLEEP_MAX)
-		    this_dbs_info->requested_freq = FREQ_SLEEP_MAX;
+		if (suspended && this_dbs_info->requested_freq > sleep_max)
+		    this_dbs_info->requested_freq = sleep_max;
 		    
 		//Screen off mode
-		if (!suspended && this_dbs_info->requested_freq < FREQ_AWAKE_MIN)
-		    this_dbs_info->requested_freq = FREQ_AWAKE_MIN;
+		if (!suspended && this_dbs_info->requested_freq < awake_min)
+		    this_dbs_info->requested_freq = awake_min;
 
 		__cpufreq_driver_target(policy, this_dbs_info->requested_freq,
 			CPUFREQ_RELATION_H);
@@ -449,7 +452,7 @@ static void dbs_check_cpu(int cpu)
 			return;
 
 		//freq_target = (dbs_tuners_ins.freq_step * policy->max) / 100;
-		freq_target = FREQ_STEP_DOWN; //policy->max;
+		freq_target = step_down; //policy->max;
 
 		/* max freq cannot be less than 100. But who knows.... */
 		if (unlikely(freq_target == 0))
@@ -465,12 +468,12 @@ static void dbs_check_cpu(int cpu)
 			this_dbs_info->requested_freq = policy->min;
 			
 		//Screen on mode
-		if (!suspended && this_dbs_info->requested_freq < FREQ_AWAKE_MIN)
-		    this_dbs_info->requested_freq = FREQ_AWAKE_MIN;
+		if (!suspended && this_dbs_info->requested_freq < awake_min)
+		    this_dbs_info->requested_freq = awake_min;
 		
 		//Screen off mode
-		if (suspended && this_dbs_info->requested_freq > FREQ_SLEEP_MAX)
-		    this_dbs_info->requested_freq = FREQ_SLEEP_MAX;
+		if (suspended && this_dbs_info->requested_freq > sleep_max)
+		    this_dbs_info->requested_freq = sleep_max;
 
 		__cpufreq_driver_target(policy, this_dbs_info->requested_freq,
 				CPUFREQ_RELATION_H);
@@ -510,6 +513,10 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	struct cpu_dbs_info_s *this_dbs_info;
 	unsigned int j;
 	int rc;
+	unsigned int min_freq = ~0;
+	unsigned int max_freq = 0;
+	unsigned int i;	
+	struct cpufreq_frequency_table *freq_table;	
 
 	this_dbs_info = &per_cpu(cpu_dbs_info, cpu);
 
@@ -569,6 +576,20 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		}
 
 		mutex_unlock(&dbs_mutex);
+		freq_table = cpufreq_frequency_get_table(policy->cpu);
+		for (i = 0; (freq_table[i].frequency != CPUFREQ_TABLE_END); i++) {
+			unsigned int freq = freq_table[i].frequency;
+			if (freq == CPUFREQ_ENTRY_INVALID) {
+				continue;
+			}
+			if (freq < min_freq)	
+				min_freq = freq;
+			if (freq > max_freq)
+				max_freq = freq;
+		}
+		step_down = min_freq;
+		sleep_max = min_freq;								//Minimum CPU frequency in table
+		awake_min = min_freq;								//Minimum CPU frequency in table
 		break;
 
 	case CPUFREQ_GOV_STOP:
