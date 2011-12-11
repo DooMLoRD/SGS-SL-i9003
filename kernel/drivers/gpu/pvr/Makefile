@@ -2,7 +2,6 @@
 ccflags-y = -DLINUX -D__linux__ -Idrivers/gpu/pvr \
 	-DANDROID \
 	-DPVR_BUILD_DIR="\"omap_sgx_android\"" \
-	-DSGX_DYNAMIC_TIMING_INFO \
 	-DSYS_CUSTOM_POWERLOCK_WRAP \
 	-DSERVICES4 \
 	-DSUPPORT_SRVINIT \

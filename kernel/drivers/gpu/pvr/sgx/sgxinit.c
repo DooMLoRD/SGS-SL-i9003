@@ -1173,14 +1173,14 @@ IMG_VOID SGXOSTimer(IMG_VOID *pvData)
 					ui32BIFCtrl = OSReadHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_CTRL);
 					OSWriteHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_CTRL, ui32BIFCtrl | EUR_CR_BIF_CTRL_PAUSE_MASK);
 					
-					OSWaitus(200 * 1000000 / psDevInfo->ui32CoreClockSpeed);
+					OSWaitus(275 * 1000000 / psDevInfo->ui32CoreClockSpeed);
 		#endif
 					
 					bBRN31093Inval = IMG_TRUE;
 					
 					OSWriteHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_CTRL_INVAL, EUR_CR_BIF_CTRL_INVAL_PTE_MASK);
 					
-					OSWaitus(200 * 1000000 / psDevInfo->ui32CoreClockSpeed);
+					OSWaitus(275 * 1000000 / psDevInfo->ui32CoreClockSpeed);
 						
 		#if defined(FIX_HW_BRN_29997)	
 						
