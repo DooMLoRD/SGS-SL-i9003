@@ -200,6 +200,19 @@ config CPU_FREQ_DEFAULT_GOV_HOTPLUG
 	  support the hotplug governor. If unsure have a look at
 	  the help section of the driver. Fallback governor will be the
 	  performance governor.
+
+config CPU_FREQ_DEFAULT_GOV_LAZY
+        bool "lazy"
+        select CPU_FREQ_GOV_LAZY
+        help
+          Use the CPUFreq governor 'lazy' as default.
+
+config CPU_FREQ_DEFAULT_GOV_LIONHEART
+	bool "lionheart"
+	select CPU_FREQ_GOV_LIONHEART
+	help
+	  Use the CPUFreq governor 'Lionheart' as default.
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -286,6 +299,16 @@ config CPU_FREQ_GOV_CONSERVATIVE
 	  For details, take a look at linux/Documentation/cpu-freq.
 
 	  If in doubt, say N.
+
+config CPU_FREQ_GOV_LAZY
+    tristate "'lazy' cpufreq governor"
+    depends on CPU_FREQ
+
+config CPU_FREQ_GOV_LIONHEART
+	tristate "'Lionheart' cpufreq governor"
+	depends on CPU_FREQ
+	help
+	  'Lionheart' - A brave and agile conservative-based governor.
 
 config CPU_FREQ_GOV_LAGFREE
         tristate "'lagfree' cpufreq governor"
