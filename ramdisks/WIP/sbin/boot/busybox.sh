@@ -26,10 +26,6 @@ fi;
 # place wrapper script
 /sbin/ext/busybox cp /sbin/ext/busybox-wrapper /sbin/busybox;
 
-# Create property directory (Factory Reset?)
-toolbox mkdir /data/prop
-toolbox chmod 777 /data/prop
-
 # mount system and rootfs r/o
 /sbin/ext/busybox mount -t rootfs -o remount,ro rootfs;
 /sbin/ext/busybox mount -o remount,ro /system;

@@ -2,23 +2,31 @@
 
 TWEAK_BASE="persist.tweak";
 
-TWEAK_IO="$TWEAK_BASE.ioscheduler";
-TWEAK_VM_SWAPPINESS="$TWEAK_BASE.vm.swappiness";
-TWEAK_VM_DIRTY="$TWEAK_BASE.vm.dirty";
-TWEAK_SCHEDULER="$TWEAK_BASE.scheduler";
-TWEAK_MINFREE="$TWEAK_BASE.minfree";
-TWEAK_SDCARD="$TWEAK_BASE.sdcard";
-TWEAK_STAGEFRIGHT="$TWEAK_BASE.stagefright";
-TWEAK_GOVERNOR_CONSERVATIVE="$TWEAK_BASE.gov_conservative";
+TWEAK_IO="$TWEAK_BASE.ioscheduler";				# I/O: Scheduler
+TWEAK_NOATIME="$TWEAK_BASE.noatime";				# Network Tweaks
+TWEAK_VM_SWAPPINESS="$TWEAK_BASE.vm.swappiness";		# VM: Swappiness
+TWEAK_VM_DIRTY="$TWEAK_BASE.vm.dirty";				# Ram Script
+TWEAK_SCHEDULER="$TWEAK_BASE.scheduler";			# Kernel Scheduler
+TWEAK_MINFREE="$TWEAK_BASE.minfree";				# RAM: Min-free
+TWEAK_SDCARD="$TWEAK_BASE.sdcard";				# SD: Speed tweak
+TWEAK_STAGEFRIGHT="$TWEAK_BASE.stagefright";			# Auto ZipAlign
+TWEAK_GOVERNOR_CONSERVATIVE="$TWEAK_BASE.gov_conservative";	# EXT4 Speed
+TWEAK_SCHEDULER_DEADLINE="$TWEAK_BASE.sched_deadline";		# I/O: Deadline sched.
+TWEAK_TOUCHSCREEN="$TWEAK_BASE.touchscreen";			# Optimize SQLite databases
 
-
-for i in $TWEAK_GOVERNOR_CONSERVATIVE $TWEAK_STAGEFRIGHT $TWEAK_IO $TWEAK_VM_SWAPPINESS $TWEAK_VM_DIRTY $TWEAK_SCHEDULER $TWEAK_MINFREE $TWEAK_SDCARD; do
-  if [ "$(propget $i)" = "" ]; then
-    propset $i disabled;
+for i in $TWEAK_IO $TWEAK_NOATIME $TWEAK_VM_SWAPPINESS $TWEAK_VM_DIRTY $TWEAK_SCHEDULER $TWEAK_MINFREE $TWEAK_SDCARD $TWEAK_GOVERNOR_CONSERVATIVE; do
+  if [ "$(getprop $i)" = "" ]; then
+    setprop $i enabled;
   fi;
 done;
 
-if [ $(propget $TWEAK_IO) = "enabled" ]; then
+for i in $TWEAK_STAGEFRIGHT $TWEAK_SCHEDULER_DEADLINE $TWEAK_TOUCHSCREEN; do
+  if [ "$(getprop $i)" = "" ]; then
+    setprop $i disabled;
+  fi;
+done;
+
+if [ $(getprop $TWEAK_IO) = "enabled" ]; then
   # Tweak cfq io scheduler
   for i in $(ls -1 /sys/block/stl*) $(ls -1 /sys/block/mmc*)
   do 
@@ -26,57 +34,81 @@ if [ $(propget $TWEAK_IO) = "enabled" ]; then
     echo "1" > $i/queue/iosched/low_latency
     echo "1" > $i/queue/iosched/back_seek_penalty
     echo "1000000000" > $i/queue/iosched/back_seek_max
-    echo "3" > $i/queue/iosched/slice_idle
-    echo "16" > $i/queue/iosched/quantum
-    echo "1" > $i/queue/iosched/fifo_batch
-    echo "256" > $i/queue/read_ahead_kb
+    echo "2" > $i/queue/iosched/slice_idle
+    echo "3072" > $i/queue/read_ahead_kb
+    echo "2048" > $i/queue/nr_requests
   done
 fi;
 
-if [ $(propget $TWEAK_SDCARD) = "enabled" ]; then
+if [ $(getprop $TWEAK_SCHEDULER_DEADLINE) = "enabled" ]; then
+  # use deadline scheduler
+  for i in $(ls -1 /sys/block/stl*) $(ls -1 /sys/block/mmc*)
+  do 
+    echo "deadline" > $i/queue/scheduler
+    echo "8" > $i/queue/iosched/fifo_batch
+    echo "16" > $i/queue/iosched/quantum
+    echo "400" > $i/queue/iosched/read_expire
+    echo "4" > $i/queue/iosched/writes_starved
+
+  done
+fi;
+
+if [ $(getprop $TWEAK_NOATIME) = "enabled" ]; then
+  echo "0" > /proc/sys/net/ipv4/tcp_timestamps;
+  echo "1" > /proc/sys/net/ipv4/tcp_tw_reuse;
+  echo "1" > /proc/sys/net/ipv4/tcp_sack;
+  echo "1" > /proc/sys/net/ipv4/tcp_tw_recycle;
+  echo "1" > /proc/sys/net/ipv4/tcp_window_scaling;
+  echo "5" > /proc/sys/net/ipv4/tcp_keepalive_probes;
+  echo "30" > /proc/sys/net/ipv4/tcp_keepalive_intvl;
+  echo "30" > /proc/sys/net/ipv4/tcp_fin_timeout;
+  echo "404480" > /proc/sys/net/core/wmem_max;
+  echo "404480" > /proc/sys/net/core/rmem_max;
+  echo "256960" > /proc/sys/net/core/rmem_default;
+  echo "256960" > /proc/sys/net/core/wmem_default;
+  echo "4096 16384 404480" > /proc/sys/net/ipv4/tcp_wmem;
+  echo "4096 87380 404480" > /proc/sys/net/ipv4/tcp_rmem;
+fi;
+
+if [ $(getprop $TWEAK_SDCARD) = "enabled" ]; then
   # SDcard speed tweak
   for i in $(ls -1 /sys/devices/platform/mmci-omap-hs.*/mmc_host/mmc*/mmc*/block/*/queue/read_ahead_kb); do 
     echo 3072 > $i; 
   done;
 fi;
 
-if [ $(propget $TWEAK_VM_SWAPPINESS) = "enabled" ]; then
+if [ $(getprop $TWEAK_VM_SWAPPINESS) = "enabled" ]; then
   # Tweak kernel VM management
-  echo "60" > /proc/sys/vm/swappiness
+  echo "0" > /proc/sys/vm/swappiness
 fi;
 
-if [ $(propget $TWEAK_VM_DIRTY) = "enabled" ]; then
+if [ $(getprop $TWEAK_VM_DIRTY) = "enabled" ]; then
   # Miscellaneous tweaks
-  echo 2000 > /proc/sys/vm/dirty_writeback_centisecs;
-  echo 1000 > /proc/sys/vm/dirty_expire_centisecs;
-  echo 20 > /proc/sys/vm/dirty_background_ratio;
-  echo 30 > /proc/sys/vm/dirty_ratio;
-  echo 2048 > /proc/sys/vm/min_free_kbytes;
-  echo 10 > /proc/sys/vm/vfs_cache_pressure;
+  echo "1000" > /proc/sys/vm/dirty_writeback_centisecs;
+  echo "500" > /proc/sys/vm/dirty_expire_centisecs;
+  echo "10" > /proc/sys/vm/dirty_ratio;
+  echo "2" > /proc/sys/vm/dirty_background_ratio;
+  echo "4096" > /proc/sys/vm/min_free_kbytes;
+  echo "70" > /proc/sys/vm/vfs_cache_pressure;
 fi;
 
-
-if [ $(propget $TWEAK_SCHEDULER) = "enabled" ]; then
- # Tweak kernel scheduler
-  echo 4000000 > /proc/sys/kernel/sched_min_granularity_ns;
-  echo 8000000 > /proc/sys/kernel/sched_latency_ns;
-  echo 1600000 > /proc/sys/kernel/sched_wakeup_granularity_ns;
-  echo 24319 > /proc/sys/kernel/sched_features;
-  
-  echo 404480 > proc/sys/net/core/wmem_max;
-  echo 404480 > proc/sys/net/core/rmem_max;
-  echo 4096 16384 404480 > /proc/sys/net/ipv4/tcp_wmem;
-  echo 4096 87380 404480 > /proc/sys/net/ipv4/tcp_rmem;
+if [ $(getprop $TWEAK_SCHEDULER) = "enabled" ]; then
+  # Tweak kernel scheduler, less aggressive settings
+  echo "20000000" > /proc/sys/kernel/sched_latency_ns;
+  echo "2500000" > /proc/sys/kernel/sched_wakeup_granularity_ns;
+  echo "1000000" > /proc/sys/kernel/sched_min_granularity_ns;
 fi;
 
-
-if [ $(propget $TWEAK_MINFREE) = "enabled" ]; then
+if [ $(getprop $TWEAK_MINFREE) = "enabled" ]; then
+  if [ -e /sys/module/lowmemorykiller/parameters/adj ]; then
+    echo "0,1,2,4,7,15" > /sys/module/lowmemorykiller/parameters/adj
+  fi
   if [ -e /sys/module/lowmemorykiller/parameters/minfree ]; then
-    echo "2560,4096,6144,12288,14336,21760" > /sys/module/lowmemorykiller/parameters/minfree
+    echo "2560,4096,6144,12288,14336,18432" > /sys/module/lowmemorykiller/parameters/minfree
   fi;
 fi;
 
-if [ $(propget $TWEAK_STAGEFRIGHT) = "enabled" ]; then
+if [ $(getprop $TWEAK_STAGEFRIGHT) = "enabled" ]; then
   LOG_FILE=/data/zipalign.log
   ZIPALIGNDB=/data/zipalign.db
 
@@ -116,8 +148,30 @@ if [ $(propget $TWEAK_STAGEFRIGHT) = "enabled" ]; then
   echo "Automatic ZipAlign finished at $( date +"%m-%d-%Y %H:%M:%S" )" | tee -a $LOG_FILE
 fi;
 
-if [ $(propget $TWEAK_GOVERNOR_CONSERVATIVE) = "enabled" ]; then
-  # TWEAKS: Memory tweaks
-  sysctl -w vm.oom_kill_allocating_task=0
-  sysctl -w vm.vfs_cache_pressure=10
+if [ $(getprop $TWEAK_GOVERNOR_CONSERVATIVE) = "enabled" ]; then
+	for k in $(busybox mount | grep ext4 | cut -d " " -f3)
+	do
+		sync;
+		if [ "$k" == "/system" ]; then
+			busybox mount -o remount,nobh,noatime,commit=20,noauto_da_alloc,barrier=1 $k;
+		elif [ "$k" == "/data" ]; then
+			busybox mount -o remount,nobh,noatime,commit=20,noauto_da_alloc,barrier=1 $k;
+		elif [ "$k" == "/dbdata" || "$k" == "/datadata" ]; then
+			busybox mount -o remount,nobh,noatime,commit=20,noauto_da_alloc,barrier=0,nodelalloc $k;
+		elif [ "$k" == "/cache" ]; then
+			busybox mount -o remount,nobh,noatime,commit=20,noauto_da_alloc,barrier=1 $k;
+		elif [ "$k" == "/data/sdext2" ]; then
+			busybox mount -o remount,nobh,noatime,commit=20,noauto_da_alloc,barrier=1 $k;
+		fi;
+	done
+if [ $(getprop $TWEAK_TOUCHSCREEN) = "enabled" ]; then
+  for i in `find /data -iname "*.db"` ; do 
+    sqlite3 $i 'VACUUM;'
+    sqlite3 $i 'REINDEX;'
+  done
+
+  for i in `find /dbdata -iname "*.db"` ; do 
+    sqlite3 $i 'VACUUM;'
+    sqlite3 $i 'REINDEX;'
+  done
 fi;

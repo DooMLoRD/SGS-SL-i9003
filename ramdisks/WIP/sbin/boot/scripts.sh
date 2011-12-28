@@ -1,15 +1,15 @@
-if [ -d /system/etc/init.d ]; then
-  busybox run-parts /system/etc/init.d
+if /sbin/ext/busybox [ -d /system/etc/init.d ]; then
+  /sbin/ext/busybox run-parts /system/etc/init.d
 fi;
 
-if [ -f /system/bin/customboot.sh ]; then
-  busybox sh /system/bin/customboot.sh;
+if /sbin/ext/busybox [ -f /system/bin/customboot.sh ]; then
+  /sbin/ext/busybox sh /system/bin/customboot.sh;
 fi;
 
-if [ -f /system/xbin/customboot.sh ]; then
-  busybox sh /system/xbin/customboot.sh
+if /sbin/ext/busybox [ -f /system/xbin/customboot.sh ]; then
+  /sbin/ext/busybox sh /system/xbin/customboot.sh
 fi;
 
-if [ -f /data/local/customboot.sh ]; then
-  busybox sh /data/local/customboot.sh
+if /sbin/ext/busybox [ -f /data/local/customboot.sh ]; then
+  /sbin/ext/busybox sh /data/local/customboot.sh
 fi;
