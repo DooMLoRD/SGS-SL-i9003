@@ -527,6 +527,10 @@ on boot
     hostname localhost
     domainname localdomain
 
+# cpufreq defaults
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1100000
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 300000
+
 # set RLIMIT_NICE to allow priorities from 19 to -20
     setrlimit 13 40 40
 
