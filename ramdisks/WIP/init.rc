@@ -245,7 +245,6 @@ on fs
 # SEC_SECURITYLAB_LATONA_DEVICE_EFNCRYPTION: add crypt option
 # We chown/chmod /data again so because mount is run as root + defaults
     exec smc_crypto_safe_mode_on
-    mkdir /data
     mount ext4 /dev/block/mmcblk0p3 /data nosuid nodev noatime nodiratime errors=continue nobh data=writeback barrier=0 noauto_da_alloc
     mount rfs /dev/block/mmcblk0p3 /data nosuid nodev crypt check=no,iocharset=utf8
     chown system system /data
@@ -253,7 +252,6 @@ on fs
 
 # SEC_SECURITYLAB_LATONA_DEVICE_ENCRYPTION: add crypt option
     mkdir /dbdata
-    symlink /data/dbdata /dbdata
     mount ext4 /dev/block/stl10 /dbdata nosuid nodev noatime nodiratime errors=continue nobh data=writeback barrier=0 noauto_da_alloc
     mount rfs /dev/block/stl10 /dbdata nosuid nodev crypt check=no,iocharset=utf8    
 #    mount rfs /dev/block/stl10 /dbdata nosuid nodev check=no,iocharset=utf8    
@@ -320,7 +318,7 @@ on post-fs
 
     # This may have been created by the recovery system with odd permissions
     chown system cache /cache/recovery
-    chmod 0775 /cache/recovery
+    chmod 0770 /cache/recovery
 
 #add for user can pull out recovery.log file by ADB CMD
     chown system cache /cache/log
@@ -371,10 +369,10 @@ on post-fs
     chown system system /data/app   
 
     # create log system
-    mkdir /data/log 1777 system system
+    mkdir /data/log 0777 system system
 
-    chmod 1777 /data/log
-    chmod 1777 /data/anr
+    chmod 0777 /data/log
+    chmod 0777 /data/anr
     
     chmod 0662 /dev/log/radio
     chmod 0662 /dev/log/main
@@ -388,13 +386,7 @@ on post-fs
     # create the lost+found directories, so as to enforce our permissions
     mkdir /data/lost+found 0770
     mkdir /cache/lost+found 0770
-
-    # double check the perms, in case lost+found already exists, and set owner
-    chown root root /data/lost+found
-    chmod 0770 /data/lost+found
-    chown root root /cache/lost+found
-    chmod 0770 /cache/lost+found
-
+	
    # permissions for MTP device node_temporary permission_will be changed 0660
     chmod 0660 /dev/usb_mtp_gadget 
     chown system system /dev/usb_mtp_gadget
@@ -414,12 +406,12 @@ on post-fs
     mkdir /data/mrd/almc/adabip 0744
     chown radio radio /data/mrd/almc/adabip/
     chmod 0744 /data/mrd/almc/adabip/
-# Added for Playready DRM Support
+	# Added for Playready DRM Support
     mkdir /data/data/.drm 0775
-    chown media system /data/data/.drm
+	chown media system /data/data/.drm
     chmod 0775 /data/data/.drm
-    mkdir /data/data/.drm/.playready 0775
-    chown media system /data/data/.drm/.playready
+	mkdir /data/data/.drm/.playready 0775
+	chown media system /data/data/.drm/.playready
     chmod 0775 /data/data/.drm/.playready
 
     
@@ -429,9 +421,7 @@ on post-fs
     mkdir /efs/.files/.dx1 0775
     mkdir /efs/.files/.dm33 0775
     mkdir /efs/.files/.mp301 0775
-    chown media system /efs/.files/.dx1
-    chown media system /efs/.files/.dm33
-    chown media system /efs/.files/.mp301
+
     chmod 0775 /efs/.files/.dx1
     chmod 0775 /efs/.files/.dm33
     chmod 0775 /efs/.files/.mp301
@@ -628,8 +618,7 @@ on boot
     setprop net.tcp.buffersize.umts    4094,87380,110208,4096,16384,110208
     setprop net.tcp.buffersize.edge    4093,26280,35040,4096,16384,35040
     setprop net.tcp.buffersize.gprs    4092,8760,11680,4096,8760,11680
-    setprop net.tcp.buffersize.hspa    4092,87380,262144,4096,16384,110208
-
+    
 # +++++++++++++++++++++++++++++++++++++++++++
 # for datarouter
     chown system system /dev/ttyGS0
@@ -639,6 +628,7 @@ on boot
     start cfpatch
     write /data/sync_fifo sync
 
+on property:cm.filesystem.ready=1
     class_start default
 
 # Chainfire - system patch service
@@ -654,12 +644,8 @@ service ueventd /sbin/ueventd
 
 service console /system/bin/sh
     console
-    disabled
     user shell
     group shell system log
-
-on property:ro.secure=0
-    start console
 
 # Samsung USB Mode : system properties are linked with sysfs
 # write /sys/class/sec/switch/UsbMenuSel 0
@@ -914,7 +900,7 @@ service geomagneticd /system/bin/geomagneticd
 service gpsd /system/vendor/bin/gpsd -c /vendor/etc/gps.xml
     socket gps seqpacket 0660 gps system
     user gps
-    group system inet sdcard_rw
+    group system inet
 
 ###### Device Encryption - init_wtl_data.rc
 on property:encryption.bootmode=remount
