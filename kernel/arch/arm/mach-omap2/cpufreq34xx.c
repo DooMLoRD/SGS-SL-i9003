@@ -92,7 +92,12 @@ static struct omap_opp_def __initdata omap36xx_opp_def_list[] = {
 	/* MPU OPP4 - OPP-SB */
 	OMAP_OPP_DEF("mpu", true,  1000000000, 1387500),
 	/* MPU OPP5 */
-	OMAP_OPP_DEF("mpu", false, 1200000000, 1400000),
+// testing 1.20 ghz
+//	OMAP_OPP_DEF("mpu", false, 1200000000, 1400000),
+// testing 1.25 ghz
+//	OMAP_OPP_DEF("mpu", false, 1250000000, 1400000),
+// testing 1.30 ghz
+	OMAP_OPP_DEF("mpu", false, 1300000000, 1450000),
 
 
 	/* L3 OPP1 - OPP50 */

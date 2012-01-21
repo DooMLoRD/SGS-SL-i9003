@@ -444,17 +444,24 @@ static struct opp_frequencies opp_freq_add_table[] __initdata = {
 	.iva = 660000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP120_VDD1,
   },
-/*  {
-	.mpu = 1100000000,
+/*
+  {
+	.mpu = 1000000000,
 	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1G_VDD1,
   },
+
 #if 0
   1.2GHz has been observed to cause issues on ES1.1 boards and requires
   further investigation.
 */
   {
-	.mpu = 1200000000,
+// testing 1.20 ghz
+//	.mpu = 1200000000,
+// testing 1.25 ghz
+//	.mpu = 1250000000,
+// testing 1.30 ghz
+	.mpu = 1300000000,
 	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_2G_VDD1,
   },
