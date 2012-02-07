@@ -24,7 +24,6 @@
  *
  *************************************************************************/
 
-#include <linux/slab.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/console.h>
@@ -887,38 +886,60 @@ static void display_sync_handler(struct work_struct *work)
 	ulMaxIndex = psSwapChain->ulBufferCount - 1;
 
 	/* Iterate through the flip items and flip them if necessary */
-	while (psFlipItem->bValid) {
-		/* Update display */
-		display->present_buffer_sync(psFlipItem->display_buffer);
+	while(psFlipItem->bValid)
+	{
+		if(psFlipItem->bFlipped)
+		{
+			if(!psFlipItem->bCmdCompleted)
+			{
+				psSwapChain->psPVRJTable->pfnPVRSRVCmdComplete(
+					(IMG_HANDLE)psFlipItem->hCmdComplete,
+					IMG_TRUE);
+				psFlipItem->bCmdCompleted = OMAP_TRUE;
+			}
 
-		psFlipItem->ulSwapInterval--;
-		psFlipItem->bFlipped = OMAP_TRUE;
-
-		if (psFlipItem->ulSwapInterval == 0) {
-
-			/* Mark the flip item as completed to reuse it */
-			psSwapChain->ulRemoveIndex++;
-			if (psSwapChain->ulRemoveIndex > ulMaxIndex)
-				psSwapChain->ulRemoveIndex = 0;
-			psFlipItem->bCmdCompleted = OMAP_FALSE;
-			psFlipItem->bFlipped = OMAP_FALSE;
-			psFlipItem->bValid = OMAP_FALSE;
-
-			psSwapChain->psPVRJTable->pfnPVRSRVCmdComplete(
-				(IMG_HANDLE)psFlipItem->hCmdComplete,
-				IMG_TRUE);
-			psFlipItem->bCmdCompleted = OMAP_TRUE;
-		} else {
+			if(psFlipItem->ulSwapInterval == 0)
+			{
+				psSwapChain->ulRemoveIndex++;
+				if(psSwapChain->ulRemoveIndex > ulMaxIndex)
+					psSwapChain->ulRemoveIndex = 0;
+				psFlipItem->bCmdCompleted = OMAP_FALSE;
+				psFlipItem->bFlipped = OMAP_FALSE;
+				psFlipItem->bValid = OMAP_FALSE;
+			}
+			else
+			{
+				/*
+				 * Here the swap interval is not zero yet
+				 * we need to schedule another work until
+				 * it reaches zero
+				 */
+				display->sync(display);
+				psFlipItem->ulSwapInterval--;
+				queue_work(psDevInfo->sync_display_wq,
+					&psDevInfo->sync_display_work);
+				goto ExitUnlock;
+			}
+		}
+		else
+		{
+			display->present_buffer_sync(
+				psFlipItem->display_buffer);
 			/*
-			 * Here the swap interval is not zero yet
-			 * we need to schedule another work until
-			 * it reaches zero
+			 * present_buffer_sync waits and then present, then
+			 * swap interval decreases here too.
+			 */
+			psFlipItem->ulSwapInterval--;
+			psFlipItem->bFlipped = OMAP_TRUE;
+			/*
+			 * If the flip has been presented here then we need
+			 * in the next sync execute the command complete,
+			 * schedule another work
 			 */
 			queue_work(psDevInfo->sync_display_wq,
 				&psDevInfo->sync_display_work);
-			break;
+			goto ExitUnlock;
 		}
-
 		psFlipItem =
 			&psSwapChain->psFlipItems[psSwapChain->ulRemoveIndex];
 	}
@@ -1269,7 +1290,6 @@ static enum OMAP_ERROR init_display_device(struct OMAP_DISP_DEVINFO *psDevInfo,
 	psDevInfo->sSystemBuffer.sCPUVAddr =
 		(IMG_CPU_VIRTADDR) display->main_buffer->virtual_addr;
 	psDevInfo->sSystemBuffer.ulBufferSize = display->main_buffer->size;
-	psDevInfo->sSystemBuffer.display_buffer = display->main_buffer;
 	psDevInfo->display = display;
 
 	return OMAP_OK;
@@ -1287,10 +1307,8 @@ static enum OMAP_ERROR create_display_devices(void)
 
 	DEBUG_PRINTK("Initializing 3rd party display driver");
 
-	/* Init display abstraction layer */
-	omap_display_initialize();
-
 	/* Ask for the number of displays available */
+	omap_display_init();
 	/* TODO: allow more displays */
 	display_devices_count = 1; // omap_display_count();
 

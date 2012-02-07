@@ -28,7 +28,7 @@
 #endif
 
 #include <linux/rwsem.h>
-
+#include <plat/vrfb.h>
 #include <plat/display.h>
 
 #ifdef DEBUG

@@ -35,6 +35,8 @@
 #include "private_data.h"
 #include "linkage.h"
 #include "pvr_bridge_km.h"
+#include "pvr_uaccess.h"
+#include "refcount.h"
 
 #if defined(SUPPORT_DRI_DRM)
 #include <drm/drmP.h>
@@ -296,7 +298,11 @@ PVRSRV_BridgeDispatchKM(struct file *pFile, unsigned int unref__ ioctlCmd, unsig
 				goto unlock_and_return;
 			}
 
-			psMapDevMemIN->hKernelMemInfo = psPrivateData->hKernelMemInfo;
+			if (pvr_put_user(psPrivateData->hKernelMemInfo, &psMapDevMemIN->hKernelMemInfo) != 0)
+			{
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
 			break;
 		}
 
@@ -376,21 +382,48 @@ PVRSRV_BridgeDispatchKM(struct file *pFile, unsigned int unref__ ioctlCmd, unsig
 			PVRSRV_BRIDGE_OUT_EXPORTDEVICEMEM *psExportDeviceMemOUT =
 				(PVRSRV_BRIDGE_OUT_EXPORTDEVICEMEM *)psBridgePackageKM->pvParamOut;
 			PVRSRV_FILE_PRIVATE_DATA *psPrivateData = PRIVATE_DATA(pFile);
+			PVRSRV_KERNEL_MEM_INFO *psKernelMemInfo;
+
+			
+			if(PVRSRVLookupHandle(KERNEL_HANDLE_BASE,
+								  (IMG_PVOID *)&psKernelMemInfo,
+								  psExportDeviceMemOUT->hMemInfo,
+								  PVRSRV_HANDLE_TYPE_MEM_INFO) != PVRSRV_OK)
+			{
+				PVR_DPF((PVR_DBG_ERROR, "%s: Failed to look up export handle", __FUNCTION__));
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
+
+			
+			PVRSRVKernelMemInfoIncRef(psKernelMemInfo);
 
 			psPrivateData->hKernelMemInfo = psExportDeviceMemOUT->hMemInfo;
 #if defined(SUPPORT_MEMINFO_IDS)
-			psExportDeviceMemOUT->ui64Stamp = psPrivateData->ui64Stamp = ++ui64Stamp;
+			psPrivateData->ui64Stamp = ++ui64Stamp;
+
+			psKernelMemInfo->ui64Stamp = psPrivateData->ui64Stamp;
+			if (pvr_put_user(psPrivateData->ui64Stamp, &psExportDeviceMemOUT->ui64Stamp) != 0)
+			{
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
 #endif
 			break;
 		}
 
 #if defined(SUPPORT_MEMINFO_IDS)
 		case PVRSRV_BRIDGE_MAP_DEV_MEMORY:
+		case PVRSRV_BRIDGE_MAP_DEV_MEMORY_2:
 		{
 			PVRSRV_BRIDGE_OUT_MAP_DEV_MEMORY *psMapDeviceMemoryOUT =
 				(PVRSRV_BRIDGE_OUT_MAP_DEV_MEMORY *)psBridgePackageKM->pvParamOut;
 			PVRSRV_FILE_PRIVATE_DATA *psPrivateData = PRIVATE_DATA(pFile);
-			psMapDeviceMemoryOUT->sDstClientMemInfo.ui64Stamp =	psPrivateData->ui64Stamp;
+			if (pvr_put_user(psPrivateData->ui64Stamp, &psMapDeviceMemoryOUT->sDstClientMemInfo.ui64Stamp) != 0)
+			{
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
 			break;
 		}
 
@@ -398,7 +431,11 @@ PVRSRV_BridgeDispatchKM(struct file *pFile, unsigned int unref__ ioctlCmd, unsig
 		{
 			PVRSRV_BRIDGE_OUT_MAP_DEVICECLASS_MEMORY *psDeviceClassMemoryOUT =
 				(PVRSRV_BRIDGE_OUT_MAP_DEVICECLASS_MEMORY *)psBridgePackageKM->pvParamOut;
-			psDeviceClassMemoryOUT->sClientMemInfo.ui64Stamp = ++ui64Stamp;
+			if (pvr_put_user(++ui64Stamp, &psDeviceClassMemoryOUT->sClientMemInfo.ui64Stamp) != 0)
+			{
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
 			break;
 		}
 #endif 

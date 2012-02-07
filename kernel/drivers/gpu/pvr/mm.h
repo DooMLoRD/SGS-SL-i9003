@@ -27,11 +27,14 @@
 #ifndef __IMG_LINUX_MM_H__
 #define __IMG_LINUX_MM_H__
 
+#include <linux/version.h>
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,38))
 #ifndef AUTOCONF_INCLUDED
- #include <linux/config.h>
+#include <linux/config.h>
+#endif
 #endif
 
-#include <linux/version.h>
 #include <linux/slab.h>
 #include <linux/mm.h>
 #include <linux/list.h>
@@ -80,7 +83,8 @@ typedef enum {
     LINUX_MEM_AREA_VMALLOC,
     LINUX_MEM_AREA_ALLOC_PAGES,
     LINUX_MEM_AREA_SUB_ALLOC,
-    LINUX_MEM_AREA_TYPE_COUNT
+    LINUX_MEM_AREA_TYPE_COUNT,
+    LINUX_MEM_AREA_ION,
 }LINUX_MEM_AREA_TYPE;
 
 typedef struct _LinuxMemArea LinuxMemArea;
@@ -123,6 +127,12 @@ struct _LinuxMemArea {
             struct page **pvPageList;
 	    IMG_HANDLE hBlockPageList;
         }sPageList;
+        struct _sIONTilerAlloc
+        {
+            
+            IMG_CPU_PHYADDR *pCPUPhysAddrs;
+            struct ion_handle *psIONHandle[2];
+        }sIONTilerAlloc;
         struct _sSubAlloc
         {
             
@@ -274,6 +284,38 @@ LinuxMemArea *NewAllocPagesLinuxMemArea(IMG_UINT32 ui32Bytes, IMG_UINT32 ui32Are
 
 
 IMG_VOID FreeAllocPagesLinuxMemArea(LinuxMemArea *psLinuxMemArea);
+
+
+#if defined(CONFIG_ION_OMAP)
+
+LinuxMemArea *
+NewIONLinuxMemArea(IMG_UINT32 ui32Bytes, IMG_UINT32 ui32AreaFlags,
+                   IMG_PVOID pvPrivData, IMG_UINT32 ui32PrivDataLength);
+
+
+IMG_VOID FreeIONLinuxMemArea(LinuxMemArea *psLinuxMemArea);
+
+#else 
+
+static inline LinuxMemArea *
+NewIONLinuxMemArea(IMG_UINT32 ui32Bytes, IMG_UINT32 ui32AreaFlags,
+                   IMG_PVOID pvPrivData, IMG_UINT32 ui32PrivDataLength)
+{
+    PVR_UNREFERENCED_PARAMETER(ui32Bytes);
+    PVR_UNREFERENCED_PARAMETER(ui32AreaFlags);
+    PVR_UNREFERENCED_PARAMETER(pvPrivData);
+    PVR_UNREFERENCED_PARAMETER(ui32PrivDataLength);
+    BUG();
+    return IMG_NULL;
+}
+
+static inline IMG_VOID FreeIONLinuxMemArea(LinuxMemArea *psLinuxMemArea)
+{
+    PVR_UNREFERENCED_PARAMETER(psLinuxMemArea);
+    BUG();
+}
+
+#endif 
 
 
 LinuxMemArea *NewSubLinuxMemArea(LinuxMemArea *psParentLinuxMemArea,

@@ -37,6 +37,7 @@
 #include "mmu.h"
 #include "sgxconfig.h"
 #include "sgx_bridge_km.h"
+#include "pdump_osfunc.h"
 
 #define UINT32_MAX_VALUE	0xFFFFFFFFUL
 
@@ -79,8 +80,8 @@ typedef struct _MMU_PT_INFO_
 	
 	IMG_VOID *hPTPageOSMemHandle;
 	IMG_CPU_VIRTADDR PTPageCpuVAddr;
-
-
+	
+	
 	IMG_UINT32 ui32ValidPTECount;
 } MMU_PT_INFO;
 
@@ -196,8 +197,10 @@ MMU_PDumpPageTables	(MMU_HEAP *pMMUHeap,
 static IMG_VOID PageTest(IMG_VOID* pMem, IMG_DEV_PHYADDR sDevPAddr);
 #endif
 
+#define PT_DUMP 1
+
 #define PT_DEBUG 0
-#if PT_DEBUG
+#if (PT_DEBUG || PT_DUMP) && defined(PVRSRV_NEED_PVR_DPF)
 static IMG_VOID DumpPT(MMU_PT_INFO *psPTInfoList)
 {
 	IMG_UINT32 *p = (IMG_UINT32*)psPTInfoList->PTPageCpuVAddr;
@@ -206,13 +209,20 @@ static IMG_VOID DumpPT(MMU_PT_INFO *psPTInfoList)
 	
 	for(i = 0; i < 1024; i += 8)
 	{
-		PVR_DPF((PVR_DBG_WARNING,
+		PVR_DPF((PVR_DBG_ERROR,
 				 "%08X %08X %08X %08X %08X %08X %08X %08X\n",
 				 p[i + 0], p[i + 1], p[i + 2], p[i + 3],
 				 p[i + 4], p[i + 5], p[i + 6], p[i + 7]));
 	}
 }
+#else 
+static INLINE IMG_VOID DumpPT(MMU_PT_INFO *psPTInfoList)
+{
+	PVR_UNREFERENCED_PARAMETER(psPTInfoList);
+}
+#endif 
 
+#if PT_DEBUG
 static IMG_VOID CheckPT(MMU_PT_INFO *psPTInfoList)
 {
 	IMG_UINT32 *p = (IMG_UINT32*) psPTInfoList->PTPageCpuVAddr;
@@ -225,18 +235,13 @@ static IMG_VOID CheckPT(MMU_PT_INFO *psPTInfoList)
 
 	if(psPTInfoList->ui32ValidPTECount != ui32Count)
 	{
-		PVR_DPF((PVR_DBG_WARNING, "ui32ValidPTECount: %u ui32Count: %u\n",
+		PVR_DPF((PVR_DBG_ERROR, "ui32ValidPTECount: %u ui32Count: %u\n",
 				 psPTInfoList->ui32ValidPTECount, ui32Count));
 		DumpPT(psPTInfoList);
 		BUG();
 	}
 }
 #else 
-static INLINE IMG_VOID DumpPT(MMU_PT_INFO *psPTInfoList)
-{
-	PVR_UNREFERENCED_PARAMETER(psPTInfoList);
-}
-
 static INLINE IMG_VOID CheckPT(MMU_PT_INFO *psPTInfoList)
 {
 	PVR_UNREFERENCED_PARAMETER(psPTInfoList);
@@ -444,10 +449,12 @@ _AllocPageTableMemory (MMU_HEAP *pMMUHeap,
 	{
 		
 		if (OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-						   pMMUHeap->ui32PTSize,
-						   SGX_MMU_PAGE_SIZE,
-						   (IMG_VOID **)&psPTInfoList->PTPageCpuVAddr,
-						   &psPTInfoList->hPTPageOSMemHandle) != PVRSRV_OK)
+						 pMMUHeap->ui32PTSize,
+						 SGX_MMU_PAGE_SIZE,
+						 IMG_NULL,
+						 0,
+						 (IMG_VOID **)&psPTInfoList->PTPageCpuVAddr,
+						 &psPTInfoList->hPTPageOSMemHandle) != PVRSRV_OK)
 		{
 			PVR_DPF((PVR_DBG_ERROR, "_AllocPageTableMemory: ERROR call to OSAllocPages failed"));
 			return IMG_FALSE;
@@ -481,6 +488,8 @@ _AllocPageTableMemory (MMU_HEAP *pMMUHeap,
 					IMG_NULL,
 					0,
 					SGX_MMU_PAGE_SIZE,
+					0,
+					IMG_NULL,
 					0,
 					&(sSysPAddr.uiAddr))!= IMG_TRUE)
 		{
@@ -1272,10 +1281,12 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 	if(psDeviceNode->psLocalDevMemArena == IMG_NULL)
 	{
 		if (OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-							SGX_MMU_PAGE_SIZE,
-							SGX_MMU_PAGE_SIZE,
-							&pvPDCpuVAddr,
-							&hPDOSMemHandle) != PVRSRV_OK)
+						 SGX_MMU_PAGE_SIZE,
+						 SGX_MMU_PAGE_SIZE,
+						 IMG_NULL,
+						 0,
+						 &pvPDCpuVAddr,
+						 &hPDOSMemHandle) != PVRSRV_OK)
 		{
 			PVR_DPF((PVR_DBG_ERROR, "MMU_Initialise: ERROR call to OSAllocPages failed"));
 			return PVRSRV_ERROR_FAILED_TO_ALLOC_PAGES;
@@ -1303,10 +1314,12 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 		{
 			
 			if (OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-								SGX_MMU_PAGE_SIZE,
-								SGX_MMU_PAGE_SIZE,
-								&psDevInfo->pvDummyPTPageCpuVAddr,
-								&psDevInfo->hDummyPTPageOSMemHandle) != PVRSRV_OK)
+							 SGX_MMU_PAGE_SIZE,
+							 SGX_MMU_PAGE_SIZE,
+							 IMG_NULL,
+							 0,
+							 &psDevInfo->pvDummyPTPageCpuVAddr,
+							 &psDevInfo->hDummyPTPageOSMemHandle) != PVRSRV_OK)
 			{
 				PVR_DPF((PVR_DBG_ERROR, "MMU_Initialise: ERROR call to OSAllocPages failed"));
 				return PVRSRV_ERROR_FAILED_TO_ALLOC_PAGES;
@@ -1326,10 +1339,12 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 
 			
 			if (OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-								SGX_MMU_PAGE_SIZE,
-								SGX_MMU_PAGE_SIZE,
-								&psDevInfo->pvDummyDataPageCpuVAddr,
-								&psDevInfo->hDummyDataPageOSMemHandle) != PVRSRV_OK)
+							 SGX_MMU_PAGE_SIZE,
+							 SGX_MMU_PAGE_SIZE,
+							 IMG_NULL,
+							 0,
+							 &psDevInfo->pvDummyDataPageCpuVAddr,
+							 &psDevInfo->hDummyDataPageOSMemHandle) != PVRSRV_OK)
 			{
 				PVR_DPF((PVR_DBG_ERROR, "MMU_Initialise: ERROR call to OSAllocPages failed"));
 				return PVRSRV_ERROR_FAILED_TO_ALLOC_PAGES;
@@ -1354,10 +1369,12 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 			IMG_UINT32 j;
 			
 			if (OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-								SGX_MMU_PAGE_SIZE,
-								SGX_MMU_PAGE_SIZE,
-								&psDevInfo->pvBRN31620DummyPageCpuVAddr,
-								&psDevInfo->hBRN31620DummyPageOSMemHandle) != PVRSRV_OK)
+							 SGX_MMU_PAGE_SIZE,
+							 SGX_MMU_PAGE_SIZE,
+							 IMG_NULL,
+							 0,
+							 &psDevInfo->pvBRN31620DummyPageCpuVAddr,
+							 &psDevInfo->hBRN31620DummyPageOSMemHandle) != PVRSRV_OK)
 			{
 				PVR_DPF((PVR_DBG_ERROR, "MMU_Initialise: ERROR call to OSAllocPages failed"));
 				return PVRSRV_ERROR_FAILED_TO_ALLOC_PAGES;
@@ -1385,10 +1402,12 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 
 			
 			if (OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-								SGX_MMU_PAGE_SIZE,
-								SGX_MMU_PAGE_SIZE,
-								&psDevInfo->pvBRN31620DummyPTCpuVAddr,
-								&psDevInfo->hBRN31620DummyPTOSMemHandle) != PVRSRV_OK)
+							 SGX_MMU_PAGE_SIZE,
+							 SGX_MMU_PAGE_SIZE,
+							 IMG_NULL,
+							 0,
+							 &psDevInfo->pvBRN31620DummyPTCpuVAddr,
+							 &psDevInfo->hBRN31620DummyPTOSMemHandle) != PVRSRV_OK)
 			{
 				PVR_DPF((PVR_DBG_ERROR, "MMU_Initialise: ERROR call to OSAllocPages failed"));
 				return PVRSRV_ERROR_FAILED_TO_ALLOC_PAGES;
@@ -1422,6 +1441,8 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 					IMG_NULL,
 					0,
 					SGX_MMU_PAGE_SIZE,
+					0,
+					IMG_NULL,
 					0,
 					&(sSysPAddr.uiAddr))!= IMG_TRUE)
 		{
@@ -1458,6 +1479,8 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 						0,
 						SGX_MMU_PAGE_SIZE,
 						0,
+						IMG_NULL,
+						0,
 						&(sSysPAddr.uiAddr))!= IMG_TRUE)
 			{
 				PVR_DPF((PVR_DBG_ERROR, "MMU_Initialise: ERROR call to RA_Alloc failed"));
@@ -1484,6 +1507,8 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 						IMG_NULL,
 						0,
 						SGX_MMU_PAGE_SIZE,
+						0,
+						IMG_NULL,
 						0,
 						&(sSysPAddr.uiAddr))!= IMG_TRUE)
 			{
@@ -1518,6 +1543,8 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 						0,
 						SGX_MMU_PAGE_SIZE,
 						0,
+						IMG_NULL,
+						0,
 						&(sSysPAddr.uiAddr))!= IMG_TRUE)
 			{
 				PVR_DPF((PVR_DBG_ERROR, "MMU_Initialise: ERROR call to RA_Alloc failed"));
@@ -1551,6 +1578,8 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 						IMG_NULL,
 						0,
 						SGX_MMU_PAGE_SIZE,
+						0,
+						IMG_NULL,
 						0,
 						&(sSysPAddr.uiAddr))!= IMG_TRUE)
 			{
@@ -2313,6 +2342,8 @@ MMU_Create (MMU_CONTEXT *psMMUContext,
 	pMMUHeap->ui32PDMask = SGX_MMU_PD_MASK & (SGX_MMU_PD_MASK>>(32-SGX_FEATURE_ADDRESS_SPACE_SIZE));
 
 	
+#if !defined (SUPPORT_EXTERNAL_SYSTEM_CACHE)
+	
 
 
 
@@ -2325,7 +2356,7 @@ MMU_Create (MMU_CONTEXT *psMMUContext,
 						& (pMMUHeap->ui32DataPageMask
 							| pMMUHeap->ui32PTMask)) == 0);
 	}
-
+#endif
 	
 	pMMUHeap->ui32PTETotalUsable = pMMUHeap->psDevArena->ui32Size >> pMMUHeap->ui32PTShift;
 
@@ -2472,6 +2503,8 @@ MMU_Alloc (MMU_HEAP *pMMUHeap,
 							IMG_NULL,
 							0,
 							uDevVAddrAlignment,
+							0,
+							IMG_NULL,
 							0,
 							&uiAddr);
 		if(!bStatus)
@@ -2725,6 +2758,9 @@ MMU_MapPage (MMU_HEAP *pMMUHeap,
 									ui32Index ));
 			PVR_DPF((PVR_DBG_ERROR, "MMU_MapPage: Page table entry value: 0x%08X", uTmp));
 			PVR_DPF((PVR_DBG_ERROR, "MMU_MapPage: Physical page to map: 0x%08X", DevPAddr.uiAddr));
+#if PT_DUMP
+			DumpPT(ppsPTInfoList[0]);
+#endif
 		}
 #if !defined(FIX_HW_BRN_31620)
 		PVR_ASSERT((uTmp & SGX_MMU_PTE_VALID) == 0);
@@ -3154,6 +3190,8 @@ PVRSRV_ERROR MMU_BIFResetPDAlloc(PVRSRV_SGXDEV_INFO *psDevInfo)
 		eError = OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
 						      3 * SGX_MMU_PAGE_SIZE,
 						      SGX_MMU_PAGE_SIZE,
+							  IMG_NULL,
+							  0,
 						      (IMG_VOID **)&pui8MemBlock,
 						      &hOSMemHandle);
 		if (eError != PVRSRV_OK)
@@ -3184,6 +3222,8 @@ PVRSRV_ERROR MMU_BIFResetPDAlloc(PVRSRV_SGXDEV_INFO *psDevInfo)
 					IMG_NULL,
 					0,
 					SGX_MMU_PAGE_SIZE,
+					0,
+					IMG_NULL,
 					0,
 					&(sMemBlockSysPAddr.uiAddr)) != IMG_TRUE)
 		{
@@ -3281,10 +3321,12 @@ PVRSRV_ERROR WorkaroundBRN22997Alloc(PVRSRV_DEVICE_NODE	*psDeviceNode)
 	{
 		
 		eError = OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-						   SGX_MMU_PAGE_SIZE,
-						   SGX_MMU_PAGE_SIZE,
-						   (IMG_VOID **)&pui32PT,
-						   &hPTPageOSMemHandle);
+							  SGX_MMU_PAGE_SIZE,
+							  SGX_MMU_PAGE_SIZE,
+							  IMG_NULL,
+							  0,
+							  (IMG_VOID **)&pui32PT,
+							  &hPTPageOSMemHandle);
 		if (eError != PVRSRV_OK)
 		{
 			PVR_DPF((PVR_DBG_ERROR, "WorkaroundBRN22997: ERROR call to OSAllocPages failed"));
@@ -3293,10 +3335,12 @@ PVRSRV_ERROR WorkaroundBRN22997Alloc(PVRSRV_DEVICE_NODE	*psDeviceNode)
 		ui32PTOffset = 0;
 
 		eError = OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-						   SGX_MMU_PAGE_SIZE,
-						   SGX_MMU_PAGE_SIZE,
-						   (IMG_VOID **)&pui32PD,
-						   &hPDPageOSMemHandle);
+							  SGX_MMU_PAGE_SIZE,
+							  SGX_MMU_PAGE_SIZE,
+							  IMG_NULL,
+							  0,
+							  (IMG_VOID **)&pui32PD,
+							  &hPDPageOSMemHandle);
 		if (eError != PVRSRV_OK)
 		{
 			PVR_DPF((PVR_DBG_ERROR, "WorkaroundBRN22997: ERROR call to OSAllocPages failed"));
@@ -3340,6 +3384,8 @@ PVRSRV_ERROR WorkaroundBRN22997Alloc(PVRSRV_DEVICE_NODE	*psDeviceNode)
 					IMG_NULL,
 					0,
 					SGX_MMU_PAGE_SIZE,
+					0,
+					IMG_NULL,
 					0,
 					&(psDevInfo->sBRN22997SysPAddr.uiAddr))!= IMG_TRUE)
 		{
@@ -3522,110 +3568,73 @@ IMG_VOID WorkaroundBRN22997Free(PVRSRV_DEVICE_NODE *psDeviceNode)
 #if defined(SUPPORT_EXTERNAL_SYSTEM_CACHE)
 PVRSRV_ERROR MMU_MapExtSystemCacheRegs(PVRSRV_DEVICE_NODE *psDeviceNode)
 {
-	PVRSRV_ERROR eError;
-	SYS_DATA *psSysData;
-	RA_ARENA *psLocalDevMemArena;
-	IMG_HANDLE hPTPageOSMemHandle = IMG_NULL;
-	IMG_UINT32 *pui32PD;
-	IMG_UINT32 *pui32PT = IMG_NULL;
-	IMG_CPU_PHYADDR sCpuPAddr;
-	IMG_DEV_PHYADDR sPTDevPAddr;
+	IMG_UINT32 *pui32PT;
 	PVRSRV_SGXDEV_INFO *psDevInfo;
 	IMG_UINT32 ui32PDIndex;
 	IMG_UINT32 ui32PTIndex;
+	PDUMP_MMU_ATTRIB sMMUAttrib;
 
 	psDevInfo = (PVRSRV_SGXDEV_INFO*)psDeviceNode->pvDevice;
-	pui32PD = (IMG_UINT32*)psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->pvPDCpuVAddr;
 
-	SysAcquireData(&psSysData);
+	sMMUAttrib = psDevInfo->sMMUAttrib;
+#if defined(PDUMP)
+	MMU_SetPDumpAttribs(&sMMUAttrib, psDeviceNode,
+						SGX_MMU_PAGE_MASK,
+						SGX_MMU_PT_SIZE * sizeof(IMG_UINT32));
+#endif
 
-	psLocalDevMemArena = psSysData->apsLocalDevMemArena[0];
-
-	
-	if(psLocalDevMemArena == IMG_NULL)
+#if defined(PDUMP)
 	{
-		
-		eError = OSAllocPages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-						   SGX_MMU_PAGE_SIZE,
-						   SGX_MMU_PAGE_SIZE,
-						   (IMG_VOID **)&pui32PT,
-						   &hPTPageOSMemHandle);
-		if (eError != PVRSRV_OK)
-		{
-			PVR_DPF((PVR_DBG_ERROR, "MMU_MapExtSystemCacheRegs: ERROR call to OSAllocPages failed"));
-			return eError;
-		}
+		IMG_CHAR		szScript[128];
 
-		
-		if(pui32PT)
-        {
-            sCpuPAddr = OSMapLinToCPUPhys(hPTPageOSMemHandle,
-										  pui32PT);
-        }
-        else
-        {
-            
-            sCpuPAddr = OSMemHandleToCpuPAddr(hPTPageOSMemHandle, 0);
-        }
-		sPTDevPAddr = SysCpuPAddrToDevPAddr(PVRSRV_DEVICE_TYPE_SGX, sCpuPAddr);
+		sprintf(szScript, "MALLOC :EXTSYSCACHE:PA_%08X%08X %u %u 0x%08X\r\n", 0, psDevInfo->sExtSysCacheRegsDevPBase.uiAddr, SGX_MMU_PAGE_SIZE, SGX_MMU_PAGE_SIZE, psDevInfo->sExtSysCacheRegsDevPBase.uiAddr);
+		PDumpOSWriteString2(szScript, PDUMP_FLAGS_CONTINUOUS);
 	}
-	else
-	{
-		IMG_SYS_PHYADDR sSysPAddr;
-
-		
-		if(RA_Alloc(psLocalDevMemArena,
-					SGX_MMU_PAGE_SIZE,
-					IMG_NULL,
-					IMG_NULL,
-					0,
-					SGX_MMU_PAGE_SIZE,
-					0,
-					&(sSysPAddr.uiAddr))!= IMG_TRUE)
-		{
-			PVR_DPF((PVR_DBG_ERROR, "MMU_MapExtSystemCacheRegs: ERROR call to RA_Alloc failed"));
-			return PVRSRV_ERROR_OUT_OF_MEMORY;
-		}
-
-		
-		sCpuPAddr = SysSysPAddrToCpuPAddr(sSysPAddr);
-		pui32PT = OSMapPhysToLin(sCpuPAddr,
-								SGX_MMU_PAGE_SIZE,
-                                PVRSRV_HAP_WRITECOMBINE|PVRSRV_HAP_KERNEL_ONLY,
-								&hPTPageOSMemHandle);
-		if(!pui32PT)
-		{
-			PVR_DPF((PVR_DBG_ERROR, "MMU_MapExtSystemCacheRegs: ERROR failed to map page tables"));
-			return PVRSRV_ERROR_BAD_MAPPING;
-		}
-
-		
-		sPTDevPAddr = SysCpuPAddrToDevPAddr(PVRSRV_DEVICE_TYPE_SGX, sCpuPAddr);
-
-		
-		psDevInfo->sExtSystemCacheRegsPTSysPAddr = sSysPAddr;
-	}
-
-	OSMemSet(pui32PT, 0, SGX_MMU_PAGE_SIZE);
+#endif
 
 	ui32PDIndex = (SGX_EXT_SYSTEM_CACHE_REGS_DEVVADDR_BASE & SGX_MMU_PD_MASK) >> (SGX_MMU_PAGE_SHIFT + SGX_MMU_PT_SHIFT);
 	ui32PTIndex = (SGX_EXT_SYSTEM_CACHE_REGS_DEVVADDR_BASE & SGX_MMU_PT_MASK) >> SGX_MMU_PAGE_SHIFT;
 
-	
-	pui32PD[ui32PDIndex] = (sPTDevPAddr.uiAddr>>SGX_MMU_PDE_ADDR_ALIGNSHIFT)
-							| SGX_MMU_PDE_VALID;
+	pui32PT = (IMG_UINT32 *) psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->apsPTInfoList[ui32PDIndex]->PTPageCpuVAddr;
+
 	
 	pui32PT[ui32PTIndex] = (psDevInfo->sExtSysCacheRegsDevPBase.uiAddr>>SGX_MMU_PTE_ADDR_ALIGNSHIFT)
 							| SGX_MMU_PTE_VALID;
 
+#if defined(PDUMP)
 	
-	PDUMPMALLOCPAGETABLE(&psDeviceNode->sDevId, hPTPageOSMemHandle, 0, pui32PT, SGX_MMU_PAGE_SIZE, 0, PDUMP_PT_UNIQUETAG);
-	PDUMPMEMPTENTRIES(&psDevInfo->sMMUAttrib, psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->hPDOSMemHandle, pui32PD, SGX_MMU_PAGE_SIZE, 0, IMG_TRUE, PDUMP_PD_UNIQUETAG, PDUMP_PT_UNIQUETAG);
-	PDUMPMEMPTENTRIES(&psDevInfo->sMMUAttrib, hPTPageOSMemHandle, pui32PT, SGX_MMU_PAGE_SIZE, 0, IMG_TRUE, PDUMP_PT_UNIQUETAG, PDUMP_PD_UNIQUETAG);
+	{
+		IMG_DEV_PHYADDR sDevPAddr;
+		IMG_CPU_PHYADDR sCpuPAddr;
+		IMG_UINT32 ui32PageMask;
+		IMG_UINT32 ui32PTE;
+		PVRSRV_ERROR eErr;
 
-	
-	psDevInfo->pui32ExtSystemCacheRegsPT = pui32PT;
-	psDevInfo->hExtSystemCacheRegsPTPageOSMemHandle = hPTPageOSMemHandle;
+		PDUMP_GET_SCRIPT_AND_FILE_STRING();
+
+		ui32PageMask = sMMUAttrib.ui32PTSize - 1;
+		sCpuPAddr = OSMapLinToCPUPhys(psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->apsPTInfoList[ui32PDIndex]->hPTPageOSMemHandle, &pui32PT[ui32PTIndex]);
+		sDevPAddr = SysCpuPAddrToDevPAddr(sMMUAttrib.sDevId.eDeviceType, sCpuPAddr);
+		ui32PTE = *((IMG_UINT32 *) (&pui32PT[ui32PTIndex]));
+
+		eErr = PDumpOSBufprintf(hScript,
+								ui32MaxLenScript,
+								"WRW :%s:PA_%08X%08X:0x%08X :%s:PA_%08X%08X:0x%08X\r\n",
+								sMMUAttrib.sDevId.pszPDumpDevName,
+								(IMG_UINT32)(IMG_UINTPTR_T)PDUMP_PT_UNIQUETAG,
+								(sDevPAddr.uiAddr) & ~ui32PageMask,
+								(sDevPAddr.uiAddr) & ui32PageMask,
+								"EXTSYSCACHE",
+								(IMG_UINT32)(IMG_UINTPTR_T)PDUMP_PD_UNIQUETAG,
+								(ui32PTE & sMMUAttrib.ui32PDEMask) << sMMUAttrib.ui32PTEAlignShift,
+								ui32PTE & ~sMMUAttrib.ui32PDEMask);
+					if(eErr != PVRSRV_OK)
+					{
+						return eErr;
+					}
+					PDumpOSWriteString2(hScript, PDUMP_FLAGS_CONTINUOUS);
+	}
+#endif
 
 	return PVRSRV_OK;
 }
@@ -3637,45 +3646,39 @@ PVRSRV_ERROR MMU_UnmapExtSystemCacheRegs(PVRSRV_DEVICE_NODE *psDeviceNode)
 	RA_ARENA *psLocalDevMemArena;
 	PVRSRV_SGXDEV_INFO *psDevInfo;
 	IMG_UINT32 ui32PDIndex;
-	IMG_UINT32 *pui32PD;
+	IMG_UINT32 ui32PTIndex;
+	IMG_UINT32 *pui32PT;
+	PDUMP_MMU_ATTRIB sMMUAttrib;
 
 	psDevInfo = (PVRSRV_SGXDEV_INFO*)psDeviceNode->pvDevice;
-	pui32PD = (IMG_UINT32*)psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->pvPDCpuVAddr;
 
+	sMMUAttrib = psDevInfo->sMMUAttrib;
+
+#if defined(PDUMP)
+	MMU_SetPDumpAttribs(&sMMUAttrib, psDeviceNode,
+						SGX_MMU_PAGE_MASK,
+						SGX_MMU_PT_SIZE * sizeof(IMG_UINT32));
+#endif
 	SysAcquireData(&psSysData);
 
 	psLocalDevMemArena = psSysData->apsLocalDevMemArena[0];
 
 	
 	ui32PDIndex = (SGX_EXT_SYSTEM_CACHE_REGS_DEVVADDR_BASE & SGX_MMU_PD_MASK) >> (SGX_MMU_PAGE_SHIFT + SGX_MMU_PT_SHIFT);
-	pui32PD[ui32PDIndex] = 0;
-
-	PDUMPMEMPTENTRIES(PVRSRV_DEVICE_TYPE_SGX, psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->hPDOSMemHandle, pui32PD, SGX_MMU_PAGE_SIZE, 0, IMG_TRUE, PDUMP_PD_UNIQUETAG, PDUMP_PT_UNIQUETAG);
-	PDUMPFREEPAGETABLE(&psDeviceNode->sDevId, psDevInfo->hExtSystemCacheRegsPTPageOSMemHandle, psDevInfo->pui32ExtSystemCacheRegsPT, SGX_MMU_PAGE_SIZE, 0, PDUMP_PT_UNIQUETAG);
+	ui32PTIndex = (SGX_EXT_SYSTEM_CACHE_REGS_DEVVADDR_BASE & SGX_MMU_PT_MASK) >> SGX_MMU_PAGE_SHIFT;
 
 	
-	if(psLocalDevMemArena == IMG_NULL)
+	if (psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->apsPTInfoList[ui32PDIndex])
 	{
-		if (psDevInfo->pui32ExtSystemCacheRegsPT != IMG_NULL)
+		if (psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->apsPTInfoList[ui32PDIndex]->PTPageCpuVAddr)
 		{
-			OSFreePages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
-						  SGX_MMU_PAGE_SIZE,
-						  psDevInfo->pui32ExtSystemCacheRegsPT,
-						  psDevInfo->hExtSystemCacheRegsPTPageOSMemHandle);
+			pui32PT = (IMG_UINT32 *) psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->apsPTInfoList[ui32PDIndex]->PTPageCpuVAddr;
 		}
 	}
-	else
-	{
-		if (psDevInfo->pui32ExtSystemCacheRegsPT != IMG_NULL)
-		{
-			OSUnMapPhysToLin(psDevInfo->pui32ExtSystemCacheRegsPT,
-				 SGX_MMU_PAGE_SIZE,
-				 PVRSRV_HAP_WRITECOMBINE|PVRSRV_HAP_KERNEL_ONLY,
-				 psDevInfo->hExtSystemCacheRegsPTPageOSMemHandle);
 
-			RA_Free(psLocalDevMemArena, psDevInfo->sExtSystemCacheRegsPTSysPAddr.uiAddr, IMG_FALSE);
-		}
-	}
+	pui32PT[ui32PTIndex] = 0;
+
+	PDUMPMEMPTENTRIES(&sMMUAttrib, psDeviceNode->sDevMemoryInfo.pBMKernelContext->psMMUContext->hPDOSMemHandle, &pui32PT[ui32PTIndex], sizeof(IMG_UINT32), 0, IMG_FALSE, PDUMP_PD_UNIQUETAG, PDUMP_PT_UNIQUETAG);
 
 	return PVRSRV_OK;
 }

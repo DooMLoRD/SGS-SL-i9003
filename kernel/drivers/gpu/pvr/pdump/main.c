@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright (C) Imagination Technologies Ltd. All rights reserved.
+ * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -116,7 +116,7 @@ IMG_VOID DBGDrvGetServiceTable(IMG_VOID **fn_table)
 #if defined(SUPPORT_DRI_DRM)
 void dbgdrv_cleanup(void)
 #else
-static void __exit dbgdrv_cleanup(void)
+void __exit dbgdrv_cleanup_module(void)
 #endif
 {
 #if !defined(SUPPORT_DRI_DRM)
@@ -136,7 +136,7 @@ static void __exit dbgdrv_cleanup(void)
 #if defined(SUPPORT_DRI_DRM)
 IMG_INT dbgdrv_init(void)
 #else
-static int __init dbgdrv_init(void)
+int __init dbgdrv_init_module(void)
 #endif
 {
 #if (defined(LDM_PLATFORM) || defined(LDM_PCI)) && !defined(SUPPORT_DRI_DRM)
@@ -240,8 +240,7 @@ long dbgdrv_ioctl(struct file *file, unsigned int ioctlCmd, unsigned long arg)
 		goto init_failed;
 	}
 
-
-	cmd = MAKEIOCTLINDEX(pIP->ui32Cmd) - DEBUG_SERVICE_IOCTL_BASE - 1;
+	cmd = ((pIP->ui32Cmd >> 2) & 0xFFF) - 0x801;
 
 	if(pIP->ui32Cmd == DEBUG_SERVICE_READ)
 	{
@@ -311,7 +310,5 @@ IMG_VOID DefineHotKey (IMG_UINT32 ui32ScanCode, IMG_UINT32 ui32ShiftState, PHOTK
 
 EXPORT_SYMBOL(DBGDrvGetServiceTable);
 
-#if !defined(SUPPORT_DRI_DRM)
-subsys_initcall(dbgdrv_init);
-module_exit(dbgdrv_cleanup);
-#endif
+module_init(dbgdrv_init_module);
+module_exit(dbgdrv_cleanup_module);

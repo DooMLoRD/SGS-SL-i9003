@@ -89,6 +89,21 @@ IMG_VOID SGXTestActivePowerEvent (PVRSRV_DEVICE_NODE	*psDeviceNode,
 	PVRSRV_SGXDEV_INFO	*psDevInfo = psDeviceNode->pvDevice;
 	SGXMKIF_HOST_CTL	*psSGXHostCtl = psDevInfo->psSGXHostCtl;
 
+#if defined(SYS_SUPPORTS_SGX_IDLE_CALLBACK)
+	if (!psDevInfo->bSGXIdle &&
+		((psSGXHostCtl->ui32InterruptFlags & PVRSRV_USSE_EDM_INTERRUPT_IDLE) != 0))
+	{
+		psDevInfo->bSGXIdle = IMG_TRUE;
+		SysSGXIdleTransition(psDevInfo->bSGXIdle);
+	}
+	else if (psDevInfo->bSGXIdle &&
+			((psSGXHostCtl->ui32InterruptFlags & PVRSRV_USSE_EDM_INTERRUPT_IDLE) == 0))
+	{
+		psDevInfo->bSGXIdle = IMG_FALSE;
+		SysSGXIdleTransition(psDevInfo->bSGXIdle);
+	}
+#endif 
+
 	if (((psSGXHostCtl->ui32InterruptFlags & PVRSRV_USSE_EDM_INTERRUPT_ACTIVE_POWER) != 0) &&
 		((psSGXHostCtl->ui32InterruptClearFlags & PVRSRV_USSE_EDM_INTERRUPT_ACTIVE_POWER) == 0))
 	{
@@ -350,7 +365,9 @@ PVRSRV_ERROR SGXScheduleCCBCommand(PVRSRV_DEVICE_NODE	*psDeviceNode,
 		goto Exit;
 	}
 
-	if ((eCmdType == SGXMKIF_CMD_TA) && bLastInScene)
+	if (eCmdType == SGXMKIF_CMD_2D ||
+		eCmdType == SGXMKIF_CMD_TRANSFER ||
+		((eCmdType == SGXMKIF_CMD_TA) && bLastInScene))
 	{
 		SYS_DATA *psSysData;
 
@@ -546,11 +563,16 @@ PVRSRV_ERROR SGXScheduleCCBCommandKM(PVRSRV_DEVICE_NODE		*psDeviceNode,
 		{
 			if (ui32CallerID == ISR_ID)
 			{
+				SYS_DATA *psSysData;
+				
 				
 
 
 				psDeviceNode->bReProcessDeviceCommandComplete = IMG_TRUE;
 				eError = PVRSRV_OK;
+
+				SysAcquireData(&psSysData);
+				OSScheduleMISR(psSysData);
 			}
 			else
 			{
@@ -570,16 +592,6 @@ PVRSRV_ERROR SGXScheduleCCBCommandKM(PVRSRV_DEVICE_NODE		*psDeviceNode,
 	eError = SGXScheduleCCBCommand(psDeviceNode, eCmdType, psCommandData, ui32CallerID, ui32PDumpFlags, hDevMemContext, bLastInScene);
 
 	PVRSRVPowerUnlock(ui32CallerID);
-
-	
-	if (ui32CallerID != ISR_ID)
-	{
-		
-
-
-		SGXTestActivePowerEvent(psDeviceNode, ui32CallerID);
-	}
-
 	return eError;
 }
 
@@ -659,11 +671,12 @@ PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE *psDeviceNode,
 		if (eError != PVRSRV_OK)
 		{
 				PVR_DPF((PVR_DBG_ERROR,"SGXCleanupRequest: Failed to submit clean-up command"));
+				SGXDumpDebugInfo(psDevInfo, IMG_FALSE);
 				PVR_DBG_BREAK;
 				return eError;
 		}
-
-
+		
+		
 		#if !defined(NO_HARDWARE)
 		if(PollForValueKM(&psHostCtl->ui32CleanupStatus,
 						  PVRSRV_USSE_EDM_CLEANUPCMD_COMPLETE,
@@ -674,12 +687,13 @@ PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE *psDeviceNode,
 		{
 			PVR_DPF((PVR_DBG_ERROR,"SGXCleanupRequest: Wait for uKernel to clean up (%u) failed", ui32CleanupType));
 			eError = PVRSRV_ERROR_TIMEOUT;
+			SGXDumpDebugInfo(psDevInfo, IMG_FALSE);
 			PVR_DBG_BREAK;
 		}
 		#endif
-
+	
 		#if defined(PDUMP)
-
+		
 		PDUMPCOMMENTWITHFLAGS(0, "Host Control - Poll for clean-up request to complete");
 		PDUMPMEMPOL(psHostCtlMemInfo,
 					offsetof(SGXMKIF_HOST_CTL, ui32CleanupStatus),
@@ -688,8 +702,8 @@ PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE *psDeviceNode,
 					PDUMP_POLL_OPERATOR_EQUAL,
 					0,
 					MAKEUNIQUETAG(psHostCtlMemInfo));
-		#endif
-
+		#endif 
+	
 		if (eError != PVRSRV_OK)
 		{
 			return eError;
