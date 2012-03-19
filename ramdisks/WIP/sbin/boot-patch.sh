@@ -2,16 +2,14 @@
 
 echo 1 > /sys/class/leds/button-backlight/brightness
 
-/sbin/ext/busybox sh /sbin/boot/busybox.sh
-#/sbin/ext/busybox sh /sbin/boot/cwm.sh
-/sbin/ext/busybox sh /sbin/boot/cwmfix.sh
-/sbin/ext/busybox sh /sbin/boot/properties.sh
-/sbin/ext/busybox sh /sbin/boot/check-ver.sh
-/sbin/ext/busybox sh /sbin/boot/install.sh
-/sbin/ext/busybox sh /sbin/boot/ext4speed.sh
+/system/bin/logwrapper /sbin/ext/busybox sh /sbin/boot/busybox.sh
+/system/bin/logwrapper /sbin/ext/busybox sh /sbin/boot/cwmfix.sh
+/system/bin/logwrapper /sbin/ext/busybox sh /sbin/boot/properties.sh
+/system/bin/logwrapper /sbin/ext/busybox sh /sbin/boot/check-ver.sh
+/system/bin/logwrapper /sbin/ext/busybox sh /sbin/boot/install.sh
 # Tweaks script moved to /system/etc/init.d
-#/sbin/ext/busybox sh /sbin/boot/tweaks.sh
-/sbin/ext/busybox sh /sbin/boot/scripts.sh
+#/system/bin/logwrapper /sbin/ext/busybox sh /sbin/boot/tweaks.sh
+/system/bin/logwrapper /sbin/ext/busybox sh /sbin/boot/scripts.sh
 
 echo 0 > /sys/class/leds/button-backlight/brightness
 read sync < /data/sync_fifo

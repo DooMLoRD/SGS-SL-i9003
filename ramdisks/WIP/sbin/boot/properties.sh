@@ -1,11 +1,13 @@
-#setprop customkernel.cf-root true
-#setprop customkernel.base.cf-root true
-#setprop customkernel.name CF-Root-I9003
-#setprop customkernel.namedisplay "CF-Root-I9003 4.3"
-#setprop customkernel.version.number 82
-#setprop customkernel.version.name 4.3
-propset customkernel.cf-root true
-propset customkernel.name CF-Root-I9003
-propset customkernel.namedisplay "UC-Kernel (Team UtterChaos) with CF-Root-I9003 (amit.bagaria)"
-propset customkernel.version.number 82
-propset customkernel.version.name 4.3
+/sbin/ext/busybox mount -t rootfs -o remount,rw rootfs 
+mkdir -p /customkernel/property 
+echo true >> /customkernel/property/customkernel.cf-root 
+echo true >> /customkernel/property/customkernel.base.cf-root 
+echo CF-Root-I9003 >> /customkernel/property/customkernel.name 
+echo "UC-Kernel (Team UtterChaos) with CF-Root-I9003 (amit.bagaria)" >> /customkernel/property/customkernel.namedisplay 
+echo 102 >> /customkernel/property/customkernel.version.number 
+echo 5.1 >> /customkernel/property/customkernel.version.name 
+#echo true >> /customkernel/property/customkernel.bootani.zip 
+#echo true >> /customkernel/property/customkernel.bootani.bin 
+echo true >> /customkernel/property/customkernel.cwm 
+echo 5.0.2.8 >> /customkernel/property/customkernel.cwm.version 
+/sbin/ext/busybox mount -t rootfs -o remount,ro rootfs 
