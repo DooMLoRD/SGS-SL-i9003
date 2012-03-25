@@ -24,25 +24,36 @@
  *
  ******************************************************************************/
 
-#ifndef _LINUXSRV_H__
-#define _LINUXSRV_H__
+#if !defined(__SOCCONFIG_H__)
+#define __SOCCONFIG_H__
 
-typedef struct tagIOCTL_PACKAGE
-{
-	IMG_UINT32 ui32Cmd;
-	IMG_UINT32 ui32Size;
-	IMG_VOID	*pInBuffer;
-	IMG_UINT32  ui32InBufferSize;
-	IMG_VOID    *pOutBuffer;
-	IMG_UINT32  ui32OutBufferSize;
-} IOCTL_PACKAGE;
+#include "syscommon.h"
 
-IMG_UINT32 DeviceIoControl(IMG_UINT32 hDevice,
-						IMG_UINT32 ui32ControlCode,
-						IMG_VOID *pInBuffer,
-						IMG_UINT32 ui32InBufferSize,
-						IMG_VOID *pOutBuffer,
-						IMG_UINT32 ui32OutBufferSize,
-						IMG_UINT32 *pui32BytesReturned);
+#define VS_PRODUCT_NAME	"OMAP3"
+
+#if defined(SGX530) && (SGX_CORE_REV == 125)
+#define SYS_SGX_CLOCK_SPEED		200000000
+#else
+#define SYS_SGX_CLOCK_SPEED		110666666
+#endif
+
+#define SYS_SGX_HWRECOVERY_TIMEOUT_FREQ		(100)
+#define SYS_SGX_PDS_TIMER_FREQ				(1000)
+
+#if !defined(SYS_SGX_ACTIVE_POWER_LATENCY_MS)
+#define SYS_SGX_ACTIVE_POWER_LATENCY_MS		(1)
+#endif
+
+
+#define SYS_OMAP3430_SGX_REGS_SYS_PHYS_BASE  0x50000000
+
+#define SYS_OMAP3430_SGX_REGS_SIZE           0x4000
+
+#define SYS_OMAP3430_SGX_IRQ				 21
+
+#define SYS_OMAP3430_GP11TIMER_ENABLE_SYS_PHYS_BASE  0x48088024
+#define SYS_OMAP3430_GP11TIMER_REGS_SYS_PHYS_BASE	 0x48088028
+#define SYS_OMAP3430_GP11TIMER_TSICR_SYS_PHYS_BASE	 0x48088040
+
 
 #endif

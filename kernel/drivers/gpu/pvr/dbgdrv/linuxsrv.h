@@ -22,38 +22,27 @@
  * Imagination Technologies Ltd. <gpl-support@imgtec.com>
  * Home Park Estate, Kings Langley, Herts, WD4 8LZ, UK 
  *
- ******************************************************************************/
+ **************************************************************************/
 
-#if !defined(__SOCCONFIG_H__)
-#define __SOCCONFIG_H__
+#ifndef _LINUXSRV_H__
+#define _LINUXSRV_H__
 
-#include "syscommon.h"
+typedef struct tagIOCTL_PACKAGE
+{
+	IMG_UINT32 ui32Cmd;              // ioctl command
+	IMG_UINT32 ui32Size;			   // needs to be correctly set
+	IMG_VOID 	*pInBuffer;          // input data buffer
+	IMG_UINT32  ui32InBufferSize;     // size of input data buffer
+	IMG_VOID    *pOutBuffer;         // output data buffer
+	IMG_UINT32  ui32OutBufferSize;    // size of output data buffer
+} IOCTL_PACKAGE;
 
-#define VS_PRODUCT_NAME	"OMAP4"
+IMG_UINT32 DeviceIoControl(IMG_UINT32 hDevice,		
+						IMG_UINT32 ui32ControlCode, 
+						IMG_VOID *pInBuffer,		
+						IMG_UINT32 ui32InBufferSize,
+						IMG_VOID *pOutBuffer,		
+						IMG_UINT32 ui32OutBufferSize,  
+						IMG_UINT32 *pui32BytesReturned); 
 
-#if defined(SGX540) && (SGX_CORE_REV == 120)
-#define SYS_SGX_CLOCK_SPEED		307200000
-#else
-#define SYS_SGX_CLOCK_SPEED		304742400
-#endif
-
-#define SYS_SGX_HWRECOVERY_TIMEOUT_FREQ		(100)	
-#define SYS_SGX_PDS_TIMER_FREQ				(1000)	
-
-#if !defined(SYS_SGX_ACTIVE_POWER_LATENCY_MS)
-#define SYS_SGX_ACTIVE_POWER_LATENCY_MS		(1)
-#endif
-
-
-#define SYS_OMAP4430_SGX_REGS_SYS_PHYS_BASE  0x56000000
-
-#define SYS_OMAP4430_SGX_REGS_SIZE           0xFFFF
-
-#define SYS_OMAP4430_SGX_IRQ				 53 
-
-#define SYS_OMAP4430_GP11TIMER_ENABLE_SYS_PHYS_BASE  0x48088038
-#define SYS_OMAP4430_GP11TIMER_REGS_SYS_PHYS_BASE	 0x4808803C
-#define SYS_OMAP4430_GP11TIMER_TSICR_SYS_PHYS_BASE	 0x48088054
-
- 
-#endif	
+#endif /* _LINUXSRV_H__*/

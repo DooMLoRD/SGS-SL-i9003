@@ -23,7 +23,8 @@
  * Home Park Estate, Kings Langley, Herts, WD4 8LZ, UK 
  *
  ******************************************************************************/
-
+#include <linux/delay.h>
+#include <linux/io.h>
 #include "services_headers.h"
 #include "buffer_manager.h"
 #include "pvr_bridge_km.h"
@@ -45,6 +46,58 @@ IMG_UINT32	g_ui32InitFlags;
 
 #define		INIT_DATA_ENABLE_PDUMPINIT	0x1U
 #define		INIT_DATA_ENABLE_TTARCE		0x2U
+#ifdef PLAT_TI81xx
+#define SGX_TI81xx_CLK_DVDR_ADDR 0x481803b0
+#define CLKCTRL                                 0x4
+#define TENABLE                                 0x8
+#define TENABLEDIV                              0xC
+#define M2NDIV                                  0x10
+#define MN2DIV                              0x14
+#define STATUS                              0x24
+#define PLL_BASE_ADDRESS         0x481C5000
+#define SGX_PLL_BASE            (PLL_BASE_ADDRESS+0x0B0)
+#define OSC_0                                    20
+#define SGX_DIVIDER_ADDR        0x481803B0
+// ADPLLJ_CLKCRTL_Register Value Configurations
+// ADPLLJ_CLKCRTL_Register SPEC bug  bit 19,bit29 -- CLKLDOEN,CLKDCOEN
+#define ADPLLJ_CLKCRTL_HS2       0x00000801 //HS2 Mode,TINTZ =1  --used by all PLL's except HDMI
+#define WR_MEM_32(addr, data)    *(unsigned int*)(addr) = data
+#define RD_MEM_32(addr) 	 *(unsigned int*)(addr)
+#define UWORD32                          unsigned int
+void PLL_Clocks_Config(UWORD32 Base_Address,UWORD32 OSC_FREQ,UWORD32 N,UWORD32 M,UWORD32 M2,UWORD32 CLKCTRL_VAL);
+#endif
+
+#ifdef PLAT_TI81xx
+//Function to configure PLL clocks. Only required for TI814x. For other devices its taken care in u-boot.
+void PLL_Clocks_Config(UWORD32 Base_Address,UWORD32 OSC_FREQ,UWORD32 N,UWORD32 M,UWORD32 M2,UWORD32 CLKCTRL_VAL)
+{
+        UWORD32 m2nval,mn2val,read_clkctrl;
+        m2nval = (M2<<16) | N;
+        mn2val =  M;
+	WR_MEM_32((Base_Address+M2NDIV    ),m2nval);
+	msleep(100);
+	WR_MEM_32((Base_Address+MN2DIV    ),mn2val);
+	msleep(100);
+	WR_MEM_32((Base_Address+TENABLEDIV),0x1);
+	msleep(100);
+	WR_MEM_32((Base_Address+TENABLEDIV),0x0);
+	msleep(100);
+	WR_MEM_32((Base_Address+TENABLE   ),0x1);
+	msleep(100);
+	WR_MEM_32((Base_Address+TENABLE   ),0x0);
+	msleep(100);
+	read_clkctrl = RD_MEM_32(Base_Address+CLKCTRL);
+	//configure the TINITZ(bit0) and CLKDCO BITS IF REQUIRED
+	WR_MEM_32(Base_Address+CLKCTRL,(read_clkctrl & 0xff7fe3ff) | CLKCTRL_VAL);
+	msleep(100);
+	read_clkctrl = RD_MEM_32(Base_Address+CLKCTRL);
+
+	// poll for the freq,phase lock to occur
+	while (( (RD_MEM_32(Base_Address+STATUS)) & 0x00000600) != 0x00000600);
+	//wait for the clocks to get stabized
+	msleep(10);
+}
+#endif
 
 PVRSRV_ERROR AllocateDeviceID(SYS_DATA *psSysData, IMG_UINT32 *pui32DevID)
 {
@@ -201,8 +254,28 @@ PVRSRV_ERROR IMG_CALLCONV PVRSRVEnumerateDevicesKM(IMG_UINT32 *pui32NumDevices,
 PVRSRV_ERROR IMG_CALLCONV PVRSRVInit(PSYS_DATA psSysData)
 {
 	PVRSRV_ERROR	eError;
+#ifdef PLAT_TI81xx
+	void __iomem *pll_base;
+	void __iomem *div_base;
+#endif
 
-	
+#ifdef PLAT_TI81xx
+        if(cpu_is_ti816x()) {
+          div_base = ioremap(SGX_TI81xx_CLK_DVDR_ADDR,0x100);
+          WR_MEM_32((div_base),0x2);
+          msleep(100);
+          iounmap (div_base);
+        } else {
+            div_base = ioremap(SGX_TI81xx_CLK_DVDR_ADDR,0x100);
+            WR_MEM_32((div_base),0x0);
+            pll_base = ioremap(SGX_PLL_BASE,0x100);
+	    PLL_Clocks_Config((int)pll_base,OSC_0,19,800,4,ADPLLJ_CLKCRTL_HS2);
+            iounmap (div_base);
+            iounmap (pll_base);
+        }
+#endif
+
+
 	eError = ResManInit();
 	if (eError != PVRSRV_OK)
 	{
