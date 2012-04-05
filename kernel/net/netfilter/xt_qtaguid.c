@@ -786,8 +786,8 @@ static int iface_stat_all_proc_read(char *page, char **num_items_returned,
 	int item_index = 0;
 	int len;
 	struct iface_stat *iface_entry;
-	struct net_device_stats *stats;
-	struct net_device_stats no_dev_stats = {0};
+	const struct net_device_stats *stats;
+	const struct net_device_stats no_dev_stats = {0};
 
 	if (unlikely(module_passive)) {
 		*eof = 1;
@@ -890,14 +890,14 @@ static void _iface_stat_set_active(struct iface_stat *entry,
 		IF_DEBUG("qtaguid: %s(%s): "
 			 "enable tracking. rfcnt=%d\n", __func__,
 			 entry->ifname,
-			 -1 /*percpu_read(*net_dev->pcpu_refcnt)*/);
+			 percpu_read(*net_dev->pcpu_refcnt));
 	} else {
 		entry->active = false;
 		entry->net_dev = NULL;
 		IF_DEBUG("qtaguid: %s(%s): "
 			 "disable tracking. rfcnt=%d\n", __func__,
 			 entry->ifname,
-			 -1 /*percpu_read(*net_dev->pcpu_refcnt)*/);
+			 percpu_read(*net_dev->pcpu_refcnt));
 
 	}
 }
