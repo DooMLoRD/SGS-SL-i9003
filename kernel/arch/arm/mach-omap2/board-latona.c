@@ -435,39 +435,71 @@ struct opp_frequencies {
 
 static struct opp_frequencies opp_freq_add_table[] __initdata = {
   {
-	.mpu = 600000000,
-	.iva = 520000000,
-	.ena = OMAP3630_CONTROL_FUSE_OPP100_VDD1,
+	.mpu = 120000000,
+	.iva = 120000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP1_LOW,
+  },
+  {
+	.mpu = 200000000,
+	.iva = 200000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP1_LOW2,
+  },
+  {
+	.mpu = 400000000,
+	.iva = 300000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP60_VDD1,
+  },
+  {
+	.mpu = 500000000,
+	.iva = 400000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP70_VDD1,
+  },
+  {
+	.mpu = 700000000,
+	.iva = 600000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP80_VDD1,
   },
   {
 	.mpu = 800000000,
 	.iva = 660000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP120_VDD1,
   },
-/*
+  {
+	.mpu = 900000000,
+	.iva = 700000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP0G_VDD1,
+  },
   {
 	.mpu = 1000000000,
 	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1G_VDD1,
   },
-
-#if 0
-  1.2GHz has been observed to cause issues on ES1.1 boards and requires
-  further investigation.
-*/
   {
-// testing 1.20 ghz
-//	.mpu = 1200000000,
-// testing 1.25 ghz
-//	.mpu = 1250000000,
-// testing 1.30 ghz
-	.mpu = 1300000000,
-	.iva =  800000000,
+	.mpu = 1100000000,
+	.iva =  860000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_2G_VDD1,
   },
-//#endif
-
-  { 0, 0, 0 },
+  {
+	.mpu = 1200000000,
+	.iva =  870000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP1_3G_VDD1,
+  },
+   {
+	.mpu = 1300000000,
+	.iva =  880000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP1_4G_VDD1,
+  },
+  {
+	.mpu = 1350000000,
+	.iva =  900000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP1_5G_VDD1,
+  }, 	
+    {
+	.mpu = 1380000000,
+	.iva =  900000001,
+	.ena = OMAP3630_CONTROL_FUSE_OPP1_6G_VDD1,
+  },
+  { 0, 0, 0, 0 , 0 , 0 , 0 ,0, 0 , 0 , 0 , 0 ,0 },
 };
 
 static void __init omap_board_init(void)
@@ -563,8 +595,8 @@ static int __init latona_opp_init(void)
 		hw_support = omap_ctrl_readl(opp_freq->ena);
 		if (IS_ERR(mopp))
 			mopp = opp_find_freq_exact(mdev, opp_freq->mpu, true);
-//		if (IS_ERR(mopp) || !hw_support) {	
-		if (IS_ERR(mopp)) {
+		if (IS_ERR(mopp) || !hw_support) {	
+//		if (IS_ERR(mopp)) {
 			pr_err("%s: MPU does not support %lu MHz\n", __func__, opp_freq->mpu / 1000000);
 			continue;
 		}
