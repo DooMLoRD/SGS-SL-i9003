@@ -159,8 +159,8 @@ void deactivate_locked_super(struct super_block *s)
 {
 	struct file_system_type *fs = s->s_type;
 	if (atomic_dec_and_test(&s->s_active)) {
-		cleancache_flush_fs(s);
 		fs->kill_sb(s);
+		cleancache_flush_fs(s);
 		put_filesystem(fs);
 		put_super(s);
 	} else {
