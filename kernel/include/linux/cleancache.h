@@ -45,14 +45,10 @@ extern void __cleancache_flush_fs(struct super_block *);
 extern int cleancache_enabled;
 
 #ifdef CONFIG_CLEANCACHE
-static inline bool cleancache_fs_enabled(struct page *page)
-{
-	return page->mapping->host->i_sb->cleancache_poolid >= 0;
-}
-static inline bool cleancache_fs_enabled_mapping(struct address_space *mapping)
-{
-	return mapping->host->i_sb->cleancache_poolid >= 0;
-}
+#define cleancache_fs_enabled(_page) \
+	(_page->mapping->host->i_sb->cleancache_poolid >= 0)
+#define cleancache_fs_enabled_mapping(_mapping) \
+	(mapping->host->i_sb->cleancache_poolid >= 0)
 #else
 #define cleancache_enabled (0)
 #define cleancache_fs_enabled(_page) (0)
