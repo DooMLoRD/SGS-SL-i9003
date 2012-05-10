@@ -44,8 +44,13 @@ int cpufreq_frequency_table_cpuinfo(struct cpufreq_policy *policy,
 			max_freq = freq;
 	}
 
+#ifdef CONFIG_MACH_SAMSUNG_LATONA
+	policy->cpuinfo.min_freq = min_freq;
+	policy->cpuinfo.max_freq = max_freq;
+#else
 	policy->min = policy->cpuinfo.min_freq = min_freq;
 	policy->max = policy->cpuinfo.max_freq = max_freq;
+#endif
 
 	if (policy->min == ~0)
 		return -EINVAL;

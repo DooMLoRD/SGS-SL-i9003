@@ -201,7 +201,11 @@ static int omap_cpu_init(struct cpufreq_policy *policy)
 	if (policy->cpu >= num_online_cpus())
 		return -EINVAL;
 
+#ifdef CONFIG_MACH_SAMSUNG_LATONA
+	policy->cur = policy->min = policy->max = 800000;
+#else
 	policy->cur = policy->min = policy->max = omap_getspeed(policy->cpu);
+#endif
 
 	if (!(cpu_is_omap34xx() || cpu_is_omap44xx())) {
 		clk_init_cpufreq_table(&freq_table);
@@ -222,9 +226,15 @@ static int omap_cpu_init(struct cpufreq_policy *policy)
 							VERY_HI_RATE) / 1000;
 	}
 
+#ifdef CONFIG_MACH_SAMSUNG_LATONA
+	policy->min = 300000;
+	policy->max = 800000;
+	policy->cur = 800000;
+#else
 	policy->min = policy->cpuinfo.min_freq;
 	policy->max = policy->cpuinfo.max_freq;
 	policy->cur = omap_getspeed(policy->cpu);
+#endif
 
 	/* FIXME: what's the actual transition time? */
 	policy->cpuinfo.transition_latency = 300 * 1000;
