@@ -367,6 +367,41 @@ struct omap_opp *opp_find_voltage(struct device *dev, unsigned long volt,
 }
 
 /**
+ * opp_set_voltage() - Modify an exact voltage
+ * @dev:		device pointer associated with the opp type
+ * @volt:		voltage to replace for
+ * @new_volt: 	New voltage value
+ *
+ * Replaces an exact match in the opp list and returns handle to the matching
+ * opp if found, else returns ERR_PTR in case of error and should be handled
+ * using IS_ERR.
+ *
+ * Note enabled is a modifier for the search.  If enabled is true then the
+ * matching opp must be enabled.  If enabled is false then the matching opp
+ * must be disabled.
+ */
+struct omap_opp *opp_set_voltage(struct device *dev, unsigned long volt, unsigned long new_volt,
+		bool enabled)
+{
+	struct device_opp *dev_opp;
+	struct omap_opp *temp_opp, *opp = ERR_PTR(-ENODEV);
+
+	dev_opp = find_device_opp(dev);
+	if (IS_ERR(dev_opp))
+		return opp;
+
+	list_for_each_entry(temp_opp, &dev_opp->opp_list, node) {
+		if (!(temp_opp->enabled ^ enabled) &&
+				temp_opp->u_volt == volt) {
+			opp = temp_opp;
+			break;
+		}
+	}
+	opp->u_volt = new_volt;
+	return opp;
+}
+
+/**
  * opp_set_rate() - Change the operating frequency of the device
  * @dev:	device pointer associated with the opp type
  * @freq:	new frequency at which the device is to be operated.
