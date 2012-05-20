@@ -121,11 +121,11 @@ static struct omap_opp_def __initdata omap36xx_opp_def_list[] = {
 	
 	
 	/* DSP OPP0 - LOW */
-	OMAP_OPP_DEF("iva", true,  250000000, 840000),
+	OMAP_OPP_DEF("iva", true,  260000000, 840000),
 	/* DSP OPP0 - LOW2 */
 	OMAP_OPP_DEF("iva", true,  260000000, 920000),
 	/* DSP OPP1 - OPP50 */
-	OMAP_OPP_DEF("iva", true,  270000000, 1000000),
+	OMAP_OPP_DEF("iva", true,  260000000, 1000000),
 	/* DSP OPP0 - OPP60 */
 	OMAP_OPP_DEF("iva", true,  300000000, 1050000),
 	/* DSP OPP0 - OPP70 */
@@ -141,15 +141,15 @@ static struct omap_opp_def __initdata omap36xx_opp_def_list[] = {
 	/* DSP OPP4 - OPP-SB */
 	OMAP_OPP_DEF("iva", true, 800000000, 1350000),
 	/* DSP OPP5 */
-	OMAP_OPP_DEF("iva", true, 860000000, 1370000),
+	OMAP_OPP_DEF("iva", true, 800000000, 1370000),
 	/* DSP OPP6 */
-	OMAP_OPP_DEF("iva", true, 870000000, 1380000),
+	OMAP_OPP_DEF("iva", true, 800000000, 1380000),
 	/* DSP OPP7 */
-	OMAP_OPP_DEF("iva", true, 880000000, 1455000),
+	OMAP_OPP_DEF("iva", true, 800000000, 1455000),
 	/* DSP OPP8 */
-	OMAP_OPP_DEF("iva", true, 900000000, 1485000),
+	OMAP_OPP_DEF("iva", true, 800000000, 1485000),
         /* DSP OPP9 */
-	OMAP_OPP_DEF("iva", true, 910000000, 1500000),
+	OMAP_OPP_DEF("iva", true, 800000000, 1500000),
 };
 static u32 omap36xx_opp_def_size = ARRAY_SIZE(omap36xx_opp_def_list);
 
