@@ -15,7 +15,7 @@ cp final_files/gps.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/gps/.
 cp final_files/yas_ori_kernel_driver.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/orientation/.
 cp final_files/vibetonz.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/vibetonz/.
 cp final_files/yas_mag_kernel_driver.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/yas529/.
-cp final_files/param.ko ramdisks/WIP/lib/modules/2.6.35.7/kernel/samsung/param/.
+
 ### REPACKING RAMDISK
 echo "REPACKING RAMDISK"
 cd ramdisks/WIP/

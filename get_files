@@ -12,7 +12,7 @@ cp kernel/samsung/gps/gps.ko final_files/.
 cp kernel/samsung/orientation/yas_ori_kernel_driver.ko final_files/.
 cp kernel/samsung/vibetonz/vibetonz.ko final_files/.
 cp kernel/samsung/yas529/yas_mag_kernel_driver.ko final_files/.
-cp kernel/samsung/param/param.ko final_files/.
+
 ### Stripping modules
 echo "Stripping modules"
 cd final_files/
