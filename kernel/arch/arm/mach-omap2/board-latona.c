@@ -435,14 +435,14 @@ struct opp_frequencies {
 
 static struct opp_frequencies opp_freq_add_table[] __initdata = {
   {
-	.mpu = 120000000,
-	.iva = 250000000,
-	.ena = OMAP3630_CONTROL_FUSE_OPP1_LOW,
-  },
-  {
 	.mpu = 200000000,
 	.iva = 260000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_LOW2,
+  },
+  {
+	.mpu = 300000000,
+	.iva = 260000000,
+	.ena = OMAP3630_CONTROL_FUSE_OPP50_VDD1,
   },
   {
 	.mpu = 400000000,
@@ -476,27 +476,27 @@ static struct opp_frequencies opp_freq_add_table[] __initdata = {
   },
   {
 	.mpu = 1100000000,
-	.iva =  860000000,
+	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_2G_VDD1,
   },
   {
 	.mpu = 1200000000,
-	.iva =  870000000,
+	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_3G_VDD1,
   },
    {
 	.mpu = 1300000000,
-	.iva =  880000000,
+	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_4G_VDD1,
   },
   {
 	.mpu = 1350000000,
-	.iva =  900000000,
+	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_5G_VDD1,
   }, 	
     {
 	.mpu = 1380000000,
-	.iva =  910000000,
+	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_6G_VDD1,
   },
   { 0, 0, 0 },
