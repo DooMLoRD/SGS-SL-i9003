@@ -28,6 +28,11 @@
 #include <linux/cpu.h>
 #include <linux/completion.h>
 #include <linux/mutex.h>
+#include <plat/opp.h>
+#include <plat/voltage.h>
+#include <plat/omap-pm.h>
+#include <plat/omap_device.h>
+#include <plat/common.h>
 
 #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
 						"cpufreq-core", msg)
@@ -691,6 +696,157 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
 
+
+#ifdef CONFIG_CPU_FREQ_VDD_LEVELS
+
+//extern ssize_t acpuclk_get_vdd_levels_str(char *buf);
+static ssize_t show_vdd_levels(struct cpufreq_policy *policy, char *buf)
+{
+	int len = 0, i;
+	unsigned long *vdd = -1;
+ 	unsigned long *temp_vdd = -1;
+ 	char *voltdm_name = "mpu";
+ 	struct device *mpu_dev = omap2_get_mpuss_device();
+ 	struct cpufreq_frequency_table *mpu_freq_table = *omap_pm_cpu_get_freq_table();
+ 	struct omap_opp *temp_opp;
+ 	struct voltagedomain *mpu_voltdm;
+ 	struct omap_volt_data *mpu_voltdata;
+
+	if(!mpu_dev || !mpu_freq_table)
+	{
+		if (mpu_freq_table == NULL)
+				printk(KERN_ERR "%s: Could not get freq_table\n", __func__);
+ 		return -EINVAL;
+	}
+
+	if (buf)
+	{
+		mpu_voltdm = omap_voltage_domain_get(voltdm_name);
+		for (i = 0; mpu_freq_table[i].frequency != CPUFREQ_TABLE_END; i++) 
+		{
+			temp_opp = opp_find_freq_exact(mpu_dev, mpu_freq_table[i].frequency*1000, true);
+			if(IS_ERR(temp_opp))
+				return -EINVAL;			 
+			temp_vdd = opp_get_voltage(temp_opp);				
+			mpu_voltdata = omap_voltage_get_voltdata(mpu_voltdm, temp_vdd);
+			vdd = mpu_voltdata->volt_nominal;
+			len += sprintf(buf + len, "%lu: %lu\n", mpu_freq_table[i].frequency/1000, vdd);
+		}
+
+	}
+	return len;
+}
+
+extern void acpuclk_set_vdd(unsigned acpu_khz, int vdd);
+static ssize_t store_vdd_levels(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	int len = 0, i  = 0;
+	unsigned long *vdd = -1;
+ 	unsigned long *temp_vdd = -1;
+ 	char *voltdm_name = "mpu";
+ 	struct device *mpu_dev = omap2_get_mpuss_device();
+ 	struct cpufreq_frequency_table *mpu_freq_table = *omap_pm_cpu_get_freq_table();
+ 	struct omap_opp *temp_opp;
+ 	struct voltagedomain *mpu_voltdm;
+ 	struct omap_volt_data *mpu_voltdata;
+		
+		printk(KERN_ERR "%s: Buf:\t%s\n", __func__,buf);
+
+	if(!mpu_dev || !mpu_freq_table)
+	{
+		if (mpu_freq_table == NULL)
+				printk(KERN_ERR "%s: Could not get freq_table\n", __func__);
+		return -EINVAL;
+	}
+
+	if (buf)
+	{
+		int j;
+		int pair[2] = { 0, 0 };
+		int sign = 0;
+		unsigned int return_Freq = 0;
+		unsigned long return_Vdd = 0;
+
+		if (count < 1)
+			return 0;
+
+		if (buf[0] == '-')
+		{
+			sign = -1;
+			i++;
+		}
+		else if (buf[0] == '+')
+		{
+			sign = 1;
+			i++;
+		}
+
+		for (j = 0; i < count; i++)
+		{
+			char c = buf[i];
+			if ((c >= '0') && (c <= '9'))
+			{
+				pair[j] *= 10;
+				pair[j] += (c - '0');
+			}
+			else if ((c == ' ') || (c == '\t'))
+			{
+				if (pair[j] != 0)
+				{
+					j++;
+					if ((sign != 0) || (j > 1))
+						break;
+				}
+			}
+			else
+				break;
+		}
+
+		if (sign != 0)
+		{
+			if (pair[0] > 0)
+			{
+				return_Freq = 0;
+				return_Vdd = sign * pair[0];
+			}
+		}
+		else
+		{
+			if ((pair[0] > 0) && (pair[1] > 0))
+			{
+				return_Freq = (unsigned)pair[0];
+				return_Vdd = pair[1];
+			}
+			else
+			{
+				printk(KERN_ERR "%s: Do not provide 0 as input\nInput entries:\t%d,\t%d\n and input buffer:%s", __func__,pair[0],pair[1],buf);
+				return -EINVAL;
+			}
+		}
+
+		mpu_voltdm = omap_voltage_domain_get(voltdm_name);
+
+		printk(KERN_ERR "%s: return_Freq:%d\treturn_Vdd:%lu\n", __func__,return_Freq,return_Vdd);
+
+		for (i = 0; mpu_freq_table[i].frequency != CPUFREQ_TABLE_END; i++)
+		{
+			if(return_Freq != 0 && return_Freq == mpu_freq_table[i].frequency)
+				volt_debug_set(mpu_voltdm, return_Vdd, i);
+			else if(return_Freq == 0)
+			{
+				volt_debug_set(mpu_voltdm, return_Vdd, -1);
+				break;
+			}
+			else
+				continue;
+		}
+	}
+	return count;
+}
+
+#endif
+
+
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
 cpufreq_freq_attr_ro(cpuinfo_max_freq);
@@ -707,6 +863,11 @@ cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 cpufreq_freq_attr_rw(boost_cpufreq);
 
+#ifdef CONFIG_CPU_FREQ_VDD_LEVELS
+	cpufreq_freq_attr_rw(vdd_levels);
+#endif
+
+
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
 	&cpuinfo_max_freq.attr,
@@ -720,6 +881,11 @@ static struct attribute *default_attrs[] = {
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
 	&boost_cpufreq.attr,
+
+#ifdef CONFIG_CPU_FREQ_VDD_LEVELS
+	&vdd_levels.attr,
+#endif
+
 	NULL
 };
 

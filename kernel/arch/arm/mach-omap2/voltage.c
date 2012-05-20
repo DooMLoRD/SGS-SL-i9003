@@ -506,6 +506,96 @@ static int vp_debug_get(void *data, u64 *val)
 	return 0;
 }
 
+
+int volt_debug_set(void *data, unsigned long val, int indx)
+{
+	struct omap_vdd_info *vdd = container_of((struct voltagedomain *) data, struct omap_vdd_info, voltdm);
+	struct omap_volt_data *vdata;
+	int res = 1;
+
+	int i,j;
+	u64 old_val;
+ 	struct device *mpu_dev = omap2_get_mpuss_device();
+ 	struct cpufreq_frequency_table *mpu_freq_table = *omap_pm_cpu_get_freq_table();
+ 	struct omap_opp *dsp_opp_table = omap_pm_dsp_get_opp_table();
+ 	struct omap_opp *temp_opp;
+
+	if (!vdd) {
+		pr_warning("Wrong paramater passed\n");
+		return -EINVAL;
+	}
+
+	res = omap_vscale_pause(&vdd->voltdm,false);
+	if(res == 0)	{
+		/*vdata = omap_voltage_get_nom_volt(&vdd->voltdm);*/
+		vdata = vdd->volt_data;
+		if (IS_ERR_OR_NULL(vdata))
+			return -EINVAL;
+	
+		printk(KERN_ERR "%s: Requested change from %d to/with %lu \n", __func__,vdata[indx].volt_nominal,val);	
+
+		if(indx != -1)
+		{
+			for (i = 0; i < vdd->dev_count; i++) {
+				opp_set_voltage(vdd->dev_list[i], vdata[indx].volt_nominal, val, true);				
+			}	
+			old_val = vdata[indx].volt_nominal;
+			vdata[indx].volt_nominal = val;
+		}
+		else
+		{
+			for (j = 0; j < vdd->volt_data_count; j++) {
+				for (i = 0; i < vdd->dev_count; i++) {
+					opp_set_voltage(vdd->dev_list[i], vdata[j].volt_nominal, vdata[j].volt_nominal+val, true);
+				}
+				old_val = vdata[j].volt_nominal;
+				vdata[j].volt_nominal = vdata[j].volt_nominal + val;
+			}
+		}
+		//omap_voltage_scale(&vdd->voltdm);
+		omap_voltage_reset(&vdd->voltdm);
+
+		if(!mpu_dev || !mpu_freq_table)
+		{
+			if (mpu_freq_table == NULL)
+					printk(KERN_ERR "%s: Could not get freq_table\n", __func__);
+ 	 		return -EINVAL;
+		}
+
+		if(indx != -1)
+		{
+			i = indx;
+			temp_opp = opp_find_freq_exact(mpu_dev, mpu_freq_table[i].frequency*1000, true);
+			if(IS_ERR(temp_opp))
+				return -EINVAL;			 
+			opp_disable(temp_opp);
+			temp_opp->u_volt = val;
+			opp_enable(temp_opp);
+	 
+			opp_disable(&dsp_opp_table[i]);
+			dsp_opp_table[i].u_volt = val;
+			opp_enable(&dsp_opp_table[i]);
+		}	
+		else	
+			for (i = 0; mpu_freq_table[i].frequency != CPUFREQ_TABLE_END; i++)
+			{
+				temp_opp = opp_find_freq_exact(mpu_dev, mpu_freq_table[i].frequency*1000, true);
+				if(IS_ERR(temp_opp))
+					return -EINVAL;			 
+				opp_disable(temp_opp);
+				temp_opp->u_volt = temp_opp->u_volt + val;
+				opp_enable(temp_opp);
+		 
+				opp_disable(&dsp_opp_table[i]);
+				dsp_opp_table[i].u_volt = dsp_opp_table[i].u_volt + val;
+				opp_enable(&dsp_opp_table[i]);
+			}	
+
+		omap_vscale_unpause(&vdd->voltdm);
+	}
+	return 0;
+}
+
 static int vp_debug_set(void *data, u64 val)
 {
 	if (enable_sr_vp_debug) {
@@ -2578,8 +2668,8 @@ int omap_voltage_scale(struct voltagedomain *voltdm)
 
 		opp = opp_find_voltage(vdd->dev_list[i], volt, true);
 		if (IS_ERR(opp)) {
-			dev_err(vdd->dev_list[i], "%s: Unable to find OPP for"
-				"volt%ld\n", __func__, volt);
+			dev_err(vdd->dev_list[i], "%s: Unable to find OPP for "
+				"volt %ld\n", __func__, volt);
 			continue;
 		}
 
