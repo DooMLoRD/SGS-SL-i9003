@@ -459,6 +459,10 @@ long st_kim_start(void *kim_data)
 			pr_info("ldisc_install = 0");
 			sysfs_notify(&kim_gdata->kim_pdev->dev.kobj,
 					NULL, "install");
+			/* wait for ldisc to be installed */
+			err = wait_for_completion_timeout(
+					&kim_gdata->ldisc_installed,
+					msecs_to_jiffies(LDISC_TIME));
 			err = -ETIMEDOUT;
 			continue;
 		} else {
@@ -471,6 +475,10 @@ long st_kim_start(void *kim_data)
 				pr_info("ldisc_install = 0");
 				sysfs_notify(&kim_gdata->kim_pdev->dev.kobj,
 						NULL, "install");
+				/* wait for ldisc to be installed */
+				err = wait_for_completion_timeout(
+						&kim_gdata->ldisc_installed,
+						msecs_to_jiffies(LDISC_TIME));
 				continue;
 			} else {	/* on success don't retry */
 				break;
@@ -790,3 +798,4 @@ module_exit(st_kim_deinit);
 MODULE_AUTHOR("Pavan Savoy <pavan_savoy@ti.com>");
 MODULE_DESCRIPTION("Shared Transport Driver for TI BT/FM/GPS combo chips ");
 MODULE_LICENSE("GPL");
+
