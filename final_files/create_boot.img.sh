@@ -4,7 +4,7 @@
 
 if test -e zImage
 then
-    ./mkbootimg --kernel zImage --ramdisk newramdisk.cpio.gz --pagesize 1000 -o normalboot.img 
+    ./mkbootimg --kernel zImage --ramdisk newramdisk.cpio.gz --pagesize 1000 --cmdline "console=ttySAC2,115200 consoleblank=0" -o normalboot.img 
     tar -cvf new-GT-I9003_PDA.tar normalboot.img 
 else
     echo "No zImage found"
