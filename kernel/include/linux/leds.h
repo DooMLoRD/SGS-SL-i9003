@@ -73,6 +73,9 @@ extern void led_classdev_unregister(struct led_classdev *led_cdev);
 extern void led_classdev_suspend(struct led_classdev *led_cdev);
 extern void led_classdev_resume(struct led_classdev *led_cdev);
 
+extern void trigger_touchkey_led(int event);
+extern void suspend_touchkey_led();
+
 /*
  * LED Triggers
  */

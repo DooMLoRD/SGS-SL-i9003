@@ -58,6 +58,7 @@
 #include <linux/interrupt.h>
 #include <linux/suspend.h>
 #include <linux/platform_device.h>
+#include <linux/leds.h>
 // #include <asm/semaphore.h>
 #include <linux/semaphore.h>	// ryun
 #include <asm/mach-types.h>
@@ -599,6 +600,7 @@ void keyarray_handler(uint8_t * atmel_msg)
 #endif
 		input_report_key(tsp.inputdevice, 139, DEFAULT_PRESSURE_DOWN);
         	input_sync(tsp.inputdevice);    		
+		trigger_touchkey_led(1);
 	}
 	else if( (atmel_msg[2] & 0x2) && (back_button==0) ) // back press
 	{
@@ -608,6 +610,7 @@ void keyarray_handler(uint8_t * atmel_msg)
 #endif
 		input_report_key(tsp.inputdevice, 158, DEFAULT_PRESSURE_DOWN);                
         	input_sync(tsp.inputdevice);    				
+		trigger_touchkey_led(2);
 	}
 	else if( (~atmel_msg[2] & (0x1)) && menu_button==1 ) // menu_release
 	{
@@ -617,6 +620,7 @@ void keyarray_handler(uint8_t * atmel_msg)
 #endif
 		input_report_key(tsp.inputdevice, 139, DEFAULT_PRESSURE_UP);     
         	input_sync(tsp.inputdevice);    				
+		trigger_touchkey_led(3);
 	}
 	else if( (~atmel_msg[2] & (0x2)) && back_button==1 ) // menu_release
 	{
@@ -626,6 +630,7 @@ void keyarray_handler(uint8_t * atmel_msg)
 #endif
 		input_report_key(tsp.inputdevice, 158, DEFAULT_PRESSURE_UP); 
         	input_sync(tsp.inputdevice);    				
+		trigger_touchkey_led(3);
 	}
 	else
 	{
@@ -1419,6 +1424,7 @@ static int touchscreen_suspend(struct platform_device *pdev, pm_message_t state)
 #ifdef CONFIG_TOUCHKEY_LOCK
 	touchkey_lock_flag = 0;
 #endif
+	suspend_touchkey_led();
 	return 0;
 }
 
@@ -1429,6 +1435,7 @@ static int touchscreen_resume(struct platform_device *pdev)
 	atmel_resume();
 //	initialize_multi_touch(); 
 	enable_irq(tsp.irq);
+	trigger_touchkey_led(0);
 	return 0;
 }
 
