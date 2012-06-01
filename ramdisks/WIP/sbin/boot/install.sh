@@ -4,11 +4,6 @@ then
     /sbin/ext/busybox mount -o remount,rw /system
     /sbin/ext/busybox mount -t rootfs -o remount,rw rootfs
 
-# Free some space from /system as it fully packed in stock odexed roms
-    if /sbin/ext/busybox [ -f /system/app/InfoAlarm.apk ]; then
-        /sbin/ext/busybox cp /system/app/InfoAlarm.* /tmp/
-        toolbox rm /system/app/InfoAlarm.*
-    fi;
 
 # ensure /system/xbin exists
     toolbox mkdir /system/xbin
@@ -40,11 +35,6 @@ then
     toolbox chown 0.0 /system/app/CWMManager.apk
     toolbox chmod 644 /system/app/CWMManager.apk
 
-# Restore Apps if possible
-    /sbin/ext/busybox cp /tmp/InfoAlarm.* /system/app/
-    toolbox chown 0.0 /system/app/InfoAlarm.*
-    toolbox chmod 644 /system/app/InfoAlarm.*
-    toolbox rm /tmp/InfoAlarm.*
 
 # Once be enough
     toolbox mkdir /system/cfroot
@@ -52,7 +42,7 @@ then
     toolbox rm /data/cfroot/*
     toolbox rmdir /data/cfroot
     toolbox rm /system/cfroot/*
-    echo 1 > /system/cfroot/release-100-I9003XXKPQ-
+#    echo 1 > /system/cfroot/release-100-I9003XXKPQ-
 
 # Remount system RO
     /sbin/ext/busybox mount -t rootfs -o remount,ro rootfs

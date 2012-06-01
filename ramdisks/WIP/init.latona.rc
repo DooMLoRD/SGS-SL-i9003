@@ -1,173 +1,86 @@
-##
-# Copyright (C) 2010-2011, Samsung Electronics, Co., Ltd. All Rights Reserved.
-#  Written by System S/W Group, S/W Platform R&D Team,
-#  Mobile Communication Division.
-##
+import init.latona.usb.rc
 
-
-#==============================================================================
-# Trigger : early-init
-#==============================================================================
 on early-init
+    export EXTERNAL_STORAGE /mnt/sdcard
+    export SECONDARY_STORAGE /mnt/emmc
+    export DOWNLOAD_CACHE /data/download
+
+    export DSP_PATH /system/lib/dsp
+    export DEFAULT_BASEIMAGE /system/lib/dsp/baseimage.dof
+    export QOSDYN_FILE /system/lib/dsp/qosdyn_3430.dll64P
+
+    mkdir /mnt/sdcard 0000 system system
+    symlink /mnt/sdcard /sdcard
+
+    mkdir /mnt/emmc 0000 system system
+    symlink /mnt/emmc /emmc
+
+    mkdir /dbdata 0771 system system
+    mkdir /efs 0771 system system
+
 # load linux-kernel modules
     insmod /lib/modules/2.6.35.7/kernel/samsung/rfs_fsr/drivers/fsr/fsr.ko
     insmod /lib/modules/2.6.35.7/kernel/samsung/rfs_fsr/drivers/fsr/fsr_stl.ko
     insmod /lib/modules/2.6.35.7/kernel/samsung/rfs_fsr/fs/rfs/rfs_glue.ko
     insmod /lib/modules/2.6.35.7/kernel/samsung/rfs_fsr/fs/rfs/rfs_fat.ko
 
-    insmod /lib/modules/2.6.35.7/kernel/samsung/battery/samsung_battery.ko
-
-    insmod /lib/modules/2.6.35.7/kernel/samsung/fm_si4709/Si4709_driver.ko
-
-    insmod /lib/modules/2.6.35.7/kernel/samsung/yas529/yas_mag_kernel_driver.ko
-    insmod /lib/modules/2.6.35.7/kernel/samsung/bma222/yas_acc_kernel_driver.ko
-    insmod /lib/modules/2.6.35.7/kernel/samsung/orientation/yas_ori_kernel_driver.ko
-    insmod /lib/modules/2.6.35.7/kernel/samsung/gp2a/gp2a.ko
-    insmod /lib/modules/2.6.35.7/kernel/samsung/gps/gps.ko
-
-    insmod /lib/modules/2.6.35.7/kernel/drivers/phone_svn/storage/storage.ko
-
-    insmod /lib/modules/2.6.35.7/kernel/fs/mbcache.ko
-    insmod /lib/modules/2.6.35.7/kernel/fs/jbd2/jbd2.ko
-    insmod /lib/modules/2.6.35.7/kernel/fs/ext4/ext4.ko
-
-    insmod /lib/modules/2.6.35.7/kernel/samsung/vibetonz/vibetonz.ko
-
-
-#==============================================================================
-# Trigger : init
-#==============================================================================
-on init
-    export INTERNAL_STORAGE /mnt/sdcard
-    export EXTERNAL_STORAGE /mnt/sdcard/external_sd
-    export OTG_STORAGE /mnt/sdcard/otg_disk
-    export PM_TBLFILE /system/etc/policytable.tbl
-    export BT_FW_PATH /system/lib/firmware
-
-    mkdir /dbdata 0771 system system
-
-# Device Encryption will use efs partition for meta data
-#    mkdir /efs 0770 radio radio
-    mkdir /efs 0770 radio system
-    mkdir /debug
-
-    mount debugfs /sys/kernel/debug /sys/kernel/debug
-
-# fake some battery state
-    setprop status.battery.state Slow
-    setprop status.battery.level 5
-    setprop status.battery.level_raw  50
-    setprop status.battery.level_scale 9
-
-
-#==============================================================================
-# Trigger : early-fs
-#==============================================================================
-#on early-fs
-
-
-#==============================================================================
-# Trigger : fs
-#==============================================================================
-on fs
-
-# We chown/chmod /efs again so because mount is run as root + defaults
-    mount rfs /dev/block/stl3 /efs nosuid nodev check=no,iocharset=cp437
-
-# Device Encryption will use efs partition for meta data
-#    chown radio radio /efs
-     chown radio system /efs
-
-    chmod 0771 /efs
-
-# mount param partition
+    # mount param partition
     insmod /lib/modules/2.6.35.7/kernel/samsung/j4fs/j4fs.ko
     mkdir /mnt/.lfs 0755 root root
     mount j4fs /dev/block/stl6 /mnt/.lfs
     chmod 0755 /mnt/.lfs
     insmod /lib/modules/2.6.35.7/kernel/samsung/param/param.ko
 
-    mount debugfs debugfs /debug
+    write /proc/sys/kernel/panic_on_oops 1
+    write /proc/sys/kernel/hung_task_timeout_secs 0
+    write /proc/cpu/alignment 4
+    write /proc/sys/kernel/sched_latency_ns 10000000
+    write /proc/sys/kernel/sched_wakeup_granularity_ns 2000000
+    write /proc/sys/kernel/sched_compat_yield 1
+    write /proc/sys/kernel/sched_child_runs_first 0
 
-#==============================================================================
-# Trigger : post-fs
-#==============================================================================
-on post-fs
+on fs
+    mount ext4 /dev/block/stl9 /system
+    #mount ext4 /dev/block/stl9 /system ro remount
 
-# change permissions for alsa nodes
-    symlink /dev/snd/pcmC0D0c /dev/pcmC0D0c
-    symlink /dev/snd/pcmC0D0p /dev/pcmC0D0p
-    symlink /dev/snd/controlC0 /dev/controlC0
-    symlink /dev/snd/timer /dev/timer
+    mount ext4 /dev/block/stl11 /cache
 
-# create basic filesystem structure
-    mkdir /data/misc/radio 0771 radio radio
-# create softap for TI SoftAP. 2010/12/07 CHKIM   
-    mkdir /data/misc/softap 0770 wifi wifi
-    mkdir /data/misc/dhcp 0777 dhcp dhcp
+    mount ext4 /dev/block/mmcblk0p3 /data
 
-# create log system
-    chmod 0777 /data/log
-    chmod 0777 /data/anr
+    # download cache
+    mkdir /data/download 0770 system cache
 
-    # Added for testing WMDRM and DIVX DRM
-    mkdir /data/data/.drm/ 0775
-    mkdir /data/data/.drm/.wmdrm 0775
-    chown media system /data/data/.drm
-    chown media system /data/data/.drm/.wmdrm
+    mount ext4 /dev/block/stl10 /dbdata
+    chown system system /dbdata
+    chmod 0771 /dbdata
 
-    # Permission for WMDRM sample.hds file
-    chmod 0775  /data/data/.drm/.wmdrm/sample.hds
+    #mkdir /dbdata/dalvik-cache 0771 system system
+    #chown system system /dbdata/dalvik-cache
+    #chmod 0771 /dbdata/dalvik-cache
+    #symlink /dbdata/dalvik-cache /cache/dalvik-cache
 
-    # video play for m.youtube.com
-    mkdir /data/data/.youtube 0777
+    mkdir /efs 0775 radio radio
+    mount rfs /dev/block/stl3 /efs nosuid nodev check=no,iocharset=cp437
+    chown radio system /efs
+    chmod 0771 /efs
+    chmod 0771 /efs/bluetooth
+    chmod 0771 /efs/imei
 
-# install switch_sio driver
-    insmod /lib/modules/2.6.35.7/kernel/drivers/switch/switch_sio.ko
+    # Vibetonz
+    export TMPDIR /data/local/tmp
+    symlink /data/local/tmp /tmp
 
-# GPS UART
-    mkdir /data/gps 771 system system
-    chown system system /data/gps
-    chown system system /sys/class/sec/GPS_PWR_EN/value
-    chown system system /sys/class/sec/GPS_NRST/value
-    chown system system /sys/class/sec/GPS_CNTL/value
-    chmod 660 /sys/class/sec/GPS_PWR_EN/value
-    chmod 660 /sys/class/sec/GPS_NRST/value
-    chmod 660 /sys/class/sec/GPS_CNTL/value
+    insmod /lib/modules/2.6.35.7/kernel/samsung/battery/samsung_battery.ko
+    insmod /lib/modules/2.6.35.7/kernel/samsung/fm_si4709/Si4709_driver.ko
+    insmod /lib/modules/2.6.35.7/kernel/samsung/yas529/yas_mag_kernel_driver.ko
+    insmod /lib/modules/2.6.35.7/kernel/samsung/bma222/yas_acc_kernel_driver.ko
+    insmod /lib/modules/2.6.35.7/kernel/samsung/orientation/yas_ori_kernel_driver.ko
+    insmod /lib/modules/2.6.35.7/kernel/samsung/gp2a/gp2a.ko
+    insmod /lib/modules/2.6.35.7/kernel/samsung/gps/gps.ko
+    insmod /lib/modules/2.6.35.7/kernel/drivers/phone_svn/storage/storage.ko
+    insmod /lib/modules/2.6.35.7/kernel/samsung/vibetonz/vibetonz.ko
 
-# Added for  WMDRM 
-    mkdir /data/data/.drm/ 0775
-    mkdir /data/data/.drm/.wmdrm 0775
-    chown media system /data/data/.drm
-    chown media system /data/data/.drm/.wmdrm
-
-
-# audio tune files
-    chmod 0666 /data/aeqcoe.txt
-    chmod 0666 /data/soundbooster.txt
-    chmod 0666 /data/srstunning.txt
-
-    mkdir /dbdata/databases
-    chown system system /dbdata/databases    
-    chmod 0777 /dbdata/databases
-
-    mkdir /dbdata/system
-    chown system system /dbdata/system
-    chmod 0775 /dbdata/system
-
-    chown system radio /sys/devices/virtual/misc/level/control
-
-# add for user can pull out recovery.log file by ADB CMD
-    chown system cache /cache/log
-    chmod 0771 /cache/log
-
-# DRM directory creation
-    # DivX DRM	
-    mkdir /efs/.files 0775
-    mkdir /efs/.files/.dx1 0775
-    mkdir /efs/.files/.dm33 0775
-    mkdir /efs/.files/.mp301 0775
-
+on post-fs-data
 # permission for dvfslock ctrl
 	chown radio system /sys/power/dvfslock_ctrl
 	chmod 0660 /sys/power/dvfslock_ctrl
@@ -179,63 +92,97 @@ on post-fs
 # change permission of ftm_sleep
 	chown system system /sys/power/ftm_sleep
 	chmod 0664 /sys/power/ftm_sleep
-	
+
 # change permission of pm_debug
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_errorgain
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_smpswaittimemin
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_stepmin
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_smpswaittimemax
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_stepmax
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_vddmax
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_vddmin
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_timeout
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/fbb_enable
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_errorgain
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_smpswaittimemin
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_stepmin
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_smpswaittimemax
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_stepmax
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_vddmax
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_vddmin
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_timeout
-	chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_mpu/autocomp
-	chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_mpu/errweight
-	chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_mpu/errmaxlimit
-	chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_mpu/errminlimit
-	chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_core/autocomp
-	chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_core/errweight
-	chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_core/errmaxlimit
-	chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_core/errminlimit
-	chmod 0664 /sys/kernel/debug/pm_debug/voltage_off_while_idle
-	chmod 0664 /sys/kernel/debug/pm_debug/enable_off_mode
-	chmod 0664 /sys/kernel/debug/pm_debug/sleep_while_idle
-	chmod 0664 /sys/kernel/debug/pm_debug/wakeup_timer_seconds
-	chmod 0664 /sys/kernel/debug/pm_debug/wakeup_timer_milliseconds
-	chmod 0664 /sys/kernel/debug/pm_debug/enable_sr_vp_debug
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_errorgain
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_smpswaittimemin
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_stepmin
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_smpswaittimemax
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_stepmax
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_vddmax
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_vddmin
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/vp_timeout
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_mpu/fbb_enable
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_errorgain
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_smpswaittimemin
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_stepmin
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_smpswaittimemax
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_stepmax
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_vddmax
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_vddmin
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage/vdd_core/vp_timeout
+    chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_mpu/autocomp
+    chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_mpu/errweight
+    chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_mpu/errmaxlimit
+    chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_mpu/errminlimit
+    chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_core/autocomp
+    chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_core/errweight
+    chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_core/errmaxlimit
+    chmod 0664 /sys/kernel/debug/pm_debug/smartreflex/sr_core/errminlimit
+    chmod 0664 /sys/kernel/debug/pm_debug/voltage_off_while_idle
+    chmod 0664 /sys/kernel/debug/pm_debug/enable_off_mode
+    chmod 0664 /sys/kernel/debug/pm_debug/sleep_while_idle
+    chmod 0664 /sys/kernel/debug/pm_debug/wakeup_timer_seconds
+    chmod 0664 /sys/kernel/debug/pm_debug/wakeup_timer_milliseconds
+    chmod 0664 /sys/kernel/debug/pm_debug/enable_sr_vp_debug
 
-#==============================================================================
-# Trigger : early-boot
-#==============================================================================
-on early-boot
+    chown system system /sys/class/backlight/omap_bl/brightness
 
-    # Enabling sleep in idle path
-    write /debug/pm_debug/sleep_while_idle 1
+# change permissions for Camera
+    chown system camera /dev/video5
+    chown system camera /dev/video0
+    chmod 0660 /dev/video5
+    chmod 0660 /dev/video0
 
-    # Enabling Voltage OFF in idle path
-    write /debug/pm_debug/voltage_off_while_idle 1
+# change permissions for Overlay
+    chown system system /dev/video1
+    chmod 0660 /dev/video1
 
-    # Enabling OFF mode
-    write /debug/pm_debug/enable_off_mode 1
+# change permissions for overlay managers and display devices
+    chmod 0777 /sys/devices/platform/omapdss/manager0/name
+    chmod 0777 /sys/devices/platform/omapdss/manager1/name
 
-    # Enabling Smartreflex
-    write /debug/pm_debug/smartreflex/sr_mpu/autocomp 1 
-    write /debug/pm_debug/smartreflex/sr_core/autocomp 1 
+    chmod 0777 /sys/devices/platform/omapdss/display0/name
+    chmod 0777 /sys/devices/platform/omapdss/display1/name
 
-	# Setting scaling governor
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor conservative
-	# set wake cpufreq
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1000000	
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 300000
+    chmod 0777 /sys/devices/platform/omapdss/display0/enabled
+    chmod 0777 /sys/devices/platform/omapdss/display1/enabled
+
+    chmod 0777 /sys/devices/platform/omapdss/display1/timings
+    chmod 0777 /sys/devices/platform/omapdss/display0/timings
+
+    chmod 0777 /sys/devices/platform/omapdss/overlay0/manager
+    chmod 0777 /sys/devices/platform/omapdss/overlay1/manager
+    chmod 0777 /sys/devices/platform/omapdss/overlay2/manager
+
+    chmod 0777 /sys/devices/platform/omapdss/overlay0/enabled
+    chmod 0777 /sys/devices/platform/omapdss/overlay1/enabled
+    chmod 0777 /sys/devices/platform/omapdss/overlay2/enabled
+
+# change permissions for Previewer and Resizer
+    chown system system /dev/omap-previewer
+    chown system system /dev/omap-resizer
+    chmod 0660 /dev/omap-previewer
+    chmod 0660 /dev/omap-resizer
+
+    chown system system /dev/video6
+    chown system system /dev/video10
+    chmod 0660 /dev/video6
+    chmod 0660 /dev/video10
+
+# wi-fi
+    mkdir /data/misc/wifi/sockets 0770 wifi wifi
+    mkdir /data/misc/dhcp 0770 dhcp dhcp
+
+# change permission for uart_switch
+    chown radio radio /sys/class/sec/uart_switch/UART_SEL/value
+    chmod 660 /sys/class/sec/uart_switch/UART_SEL/value
+
+# create data/gps for GPS demon
+    mkdir /data/gps 771 gps system
+    chown gps system /data/gps
+    chown gps root /sys/class/sec/gps/GPS_PWR_EN/value
+    chmod 660 /sys/class/sec/gps/GPS_PWR_EN/value
 
     # change permissions for Sensors
     chown system system /sys/bus/i2c/drivers/cma3000_accl/4-001c
@@ -288,11 +235,24 @@ on early-boot
     chown system system /sys/devices/platform/omapdss/overlay1/enabled
     chown system system /sys/devices/platform/omapdss/overlay2/enabled
     chown system system /sys/devices/platform/omapdss/overlay3/enabled
+
     # change permissions for display timings to get the resolutions
     chown system system /sys/devices/platform/omapdss/display0/timings
     chown system system /sys/devices/platform/omapdss/display1/timings
     chown system system /sys/devices/platform/omapdss/display2/timings
     chown system system /sys/devices/platform/omapdss/display3/timings
+    chmod 0666 /sys/devices/platform/omapdss/display0/timings
+    chmod 0666 /sys/devices/platform/omapdss/display1/timings
+    chmod 0666 /sys/devices/platform/omapdss/display2/timings
+    chmod 0666 /sys/devices/platform/omapdss/display3/timings
+
+    # enable alpha blending on overlay managers to make gui controls visible
+    chown system system /sys/devices/platform/omapdss/manager0/alpha_blending_enabled
+    chown system system /sys/devices/platform/omapdss/manager1/alpha_blending_enabled
+    chmod 0666 /sys/devices/platform/omapdss/manager0/alpha_blending_enabled
+    chmod 0666 /sys/devices/platform/omapdss/manager1/alpha_blending_enabled
+    write /sys/devices/platform/omapdss/manager0/alpha_blending_enabled 1
+    write /sys/devices/platform/omapdss/manager1/alpha_blending_enabled 1
 
     # change permissions for lcd_power
     chown radio system /sys/class/backlight/omap_bl/device/lcd_power
@@ -384,19 +344,6 @@ on early-boot
     chown system input /sys/class/input/input9/status
     chown system input /sys/class/input/input9/testmode    
 
-    # Permissions for System Server and daemons.
-    chown system system /sys/class/backlight/omap_bl/brightness
-
-    # Vibetonz
-    export TMPDIR /data/local/tmp
-    symlink /data/local/tmp /tmp
-
-    # enable touch boost
-    write /sys/touchscreen/touch_boost 1
-
-# Set bluetooth address file path info.
-    setprop ro.bt.bdaddr_path "/efs/bluetooth/bt_addr"
-
 # Permissions for bluetooth.
     chown bluetooth bluetooth ro.bt.bdaddr_path
     chmod 0660 /dev/ttyS1
@@ -406,34 +353,191 @@ on early-boot
     chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
     write sys/class/rfkill/rfkill0/state 0
 
+# enable touch boost
+    write /sys/touchscreen/touch_boost 1
+    
+# CM7 touchscreen fix (waleedq)
+    write /sys/touchscreen/set_touchscreen 7032
+    write /sys/touchscreen/set_noise 4027
+    write /sys/touchscreen/set_acquisition 4000
+    exec /system/bin/cat /sys/touchscreen/set_write
+ 	
 # permission for touchscreen
     chown system system /sys/touchscreen/bootcomplete
     chown system system /sys/touchscreen/set_qt_firm_update
 
+# permissions for MTP device node_temporary permission_will be changed 0660
+    chmod 0660 /dev/usb_mtp_gadget 
+    chown system system /dev/usb_mtp_gadget
+    
+# Permission for USB and UART path
+    chown system radio /sys/devices/platform/switch-sio/uart_sel
+    chown system radio /sys/devices/platform/switch-sio/usb_sel        
+    
+# USB Device permission
+    chown system system /sys/devices/platform/android_usb/UsbMenuSel
+    chown system system /sys/devices/platform/android_usb/tethering    
+    chown system system /sys/devices/platform/i2c_omap.1/i2c-1/1-0048/twl4030_usb/vbus
 
-# Changed TI bluez system.
+    mount debugfs /sys/kernel/debug /sys/kernel/debug
+
+on boot
+    # to enable wifi - for TIWLAN
+    setprop wifi.interface "tiwlan0"
+
+# fake some battery state
+    setprop status.battery.state Slow
+    setprop status.battery.level 5
+    setprop status.battery.level_raw  50
+    setprop status.battery.level_scale 9
+
+    # Enabling sleep in idle path
+    write /debug/pm_debug/sleep_while_idle 1
+
+    # Enabling Voltage OFF in idle path
+    write /debug/pm_debug/voltage_off_while_idle 1
+
+    # Enabling OFF mode
+    write /debug/pm_debug/enable_off_mode 1
+
+    # Enabling Smartreflex
+    write /debug/pm_debug/smartreflex/sr_mpu/autocomp 1 
+    write /debug/pm_debug/smartreflex/sr_core/autocomp 1 
+
+    # Setting scaling governor
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor conservative
+
+# for datarouter
+    chown system system /dev/ttyGS0
+    chown system system /dev/dun
+
+# Increase readahead buffers on MMC devices
+    write /sys/block/mmcblk0/bdi/read_ahead_kb 1024
+
+# 3D init
+service pvrsrvinit /system/bin/pvrsrvinit
+    class core
+    user root
+    group root
+    oneshot
+
+# load DSP firmware
+service baseimage /system/bin/cexec.out /system/lib/dsp/baseimage.dof
+    class core
+    user root
+    group system audio camera graphics inet net_bt net_bt_admin net_raw media
+    oneshot
+
 service hciattach /system/bin/logwrapper /system/bin/hciattach -n /dev/ttyS1 texas 3000000
+    class main
     # let hciattach drop uid to bluetooth with the right linux capabilities
     group bluetooth net_bt_admin
     disabled
     oneshot
 
-#HCI_ENABLE_BT_DEV_UNDER_TEST_MODE   
-service bt_dut_cmd /system/bin/ti_dut
+service wpa_supplicant /system/bin/wpa_supplicant -Dtiwlan0 -itiwlan0 -c/data/misc/wifi/wpa_supplicant.conf -dd
+    class main
+    socket wpa_tiwlan0 dgram 0660 wifi wifi
+    disabled
+    oneshot
+
+service wlan_loader /system/bin/tiwlan_loader -i /system/etc/wifi/tiwlan.ini -f /system/etc/wifi/firmware.bin -e /data/misc/wifi/nvs_map.bin
+    class main
+    disabled
+    oneshot
+
+service wlan_plt_loader /system/bin/tiwlan_loader -i /system/etc/wifi/tiwlan_plt.ini -f /system/etc/wifi/firmware.bin -e /data/misc/wifi/nvs_map.bin
+    class main
+    disabled
+    oneshot
+
+service ifcfg_tiwlan_up /system/bin/ifconfig tiwlan0 up
+    class main
+    disabled
+    oneshot
+
+service tiwlan_plts /system/bin/tiwlan_plts
+    class main
+    disabled
+    oneshot
+
+service tiwlan_nvs /system/bin/tiwlan_plts -n
+    class main
+    disabled
+    oneshot
+
+service wlan_ap_loader /system/bin/tiap_loader -i /system/etc/wifi/softap/tiwlan_ap.ini -f /system/etc/wifi/softap/ap_firmware.bin -e /data/misc/wifi/nvs_map.bin
+    class main
+    disabled
+    oneshot
+
+service hostapd /system/bin/hostapd -B -P /data/misc/softap/hostapd_pid.pid /data/misc/softap/hostapd_create.conf
+    class main
+    disabled
+    oneshot
+
+service dhcpserver /system/bin/udhcpd_softap /system/etc/wifi/softap/udhcpd.conf
+    class main
+    disabled
+    oneshot
+
+service ifcfg_tiap /system/bin/ifconfig tiap0 192.168.43.1 netmask 255.255.255.0
+    class main
+    disabled
+    oneshot
+
+# DHCPCD
+# wi-fi
+service dhcpcd_tiwlan0 /system/bin/dhcpcd -ABKL tiwlan0
+    class main
+    disabled
+    oneshot
+
+# IP Renew
+# wi-fi
+service iprenew_tiwlan0 /system/bin/dhcpcd -n
+    class main
+    disabled
+    oneshot
+
+service hciattach /system/bin/brcm_patchram_plus --enable_hci --enable_lpm \
+    --baudrate 3000000 --patchram /vendor/firmware/bcm4329.hcd /dev/s3c2410_serial0
+    class main
+    user bluetooth
     group bluetooth net_bt_admin
     disabled
     oneshot
-    
-#==============================================================================
-# Trigger : boot
-#==============================================================================
-#on boot
-# Initialize the SGX driver
-#service pvrsrvinit /system/bin/pvrsrvinit
-#    user root
-#    group root
-#    oneshot
 
-#service dhcpcd /system/bin/dhcpcd -ABKL
-#    disabled
-#    oneshot
+service immvibed /system/bin/immvibed
+    class main
+    user shell
+    group system
+    oneshot
+
+# bugreport is triggered by holding down volume down, volume up and power
+service bugreport /system/bin/dumpstate -d -v -o /sdcard/bugreports/bugreport
+    class main
+    disabled
+    oneshot
+    keycodes 114 115 116
+
+service orientationd /system/bin/orientationd
+    class main
+    user compass
+    group input
+
+service geomagneticd /system/bin/geomagneticd
+    class main
+    user compass
+    group system input
+
+service gpsd /system/vendor/bin/gpsd -c /system/vendor/etc/gps.xml
+    class main
+    socket gps seqpacket 0660 gps system
+    user gps
+    group system inet
+
+service tvout /system/bin/tvoutserver
+    class main
+    user system
+    group graphics
