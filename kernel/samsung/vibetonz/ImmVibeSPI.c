@@ -90,7 +90,7 @@ static bool g_bAmpEnabled = false;
 
 
 static int g_pwmvalue=PWM_DUTY_MAX;
-static int g_dutycycle;
+static int g_dutycycle=PWM_DUTY_MAX; //Set it to MAX PWM
 
 spinlock_t vib_lock;
 
@@ -115,7 +115,24 @@ ssize_t pwmvalue_store(struct device *dev, struct device_attribute *attr, const 
 	return size;
 }
 
+static ssize_t pwmvalue_intensity_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int count;
+	
+	count = sprintf(buf,"%d\n", g_dutycycle);
+	
+	return count;
+}
+
+ssize_t pwmvalue_intensity_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	g_dutycycle = simple_strtoul(buf, NULL, 10);	
+
+	return size;
+}
+
 static DEVICE_ATTR(pwmvalue, S_IRUGO | S_IWUSR, pwmvalue_show, pwmvalue_store);
+static DEVICE_ATTR(pwmvalue_intensity, S_IRUGO | S_IWUSR, pwmvalue_intensity_show, pwmvalue_intensity_store);
 
 /*
 static irqreturn_t vibtonz_omap2_gp_timer_interrupt(int irq,void *dev_id)
@@ -354,11 +371,9 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Set(VibeUInt8 nActuatorIndex, VibeI
 			 * (0%),if force equals to 0 duty cycle will be 22.5(50%),if +127 then duty cycle will
 			 * be 45(100%)
 			 */
-			 g_dutycycle = ((nForce + 128) * (g_pwmvalue>>1)/128);
-            
 			if (g_pwmvalue>0)
 			{
-				vibtonz_GPTimerSetValue(g_pwmvalue, g_dutycycle); /* set the duty according to the modify value later */
+				vibtonz_GPTimerSetValue(PWM_DUTY_MAX, g_dutycycle); /* set the duty according to the modify value later */
 			}
 			omap_dm_timer_start(gptimer);  /* start the GPtimer9 */ 
 

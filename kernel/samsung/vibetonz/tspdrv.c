@@ -93,11 +93,11 @@ static int set_vibetonz(int timeout)
 {
 	if(!timeout) {
 		printk(KERN_DEBUG "[VIBETONZ] DISABLE\n");
+		ImmVibeSPI_ForceOut_AmpDisable(0);
 		gpio_set_value(OMAP_GPIO_VIBTONE_EN, GPIO_LEVEL_LOW);
 	}
 	else {
-
-		
+		ImmVibeSPI_ForceOut_Set(0,1);
 		printk(KERN_DEBUG "[VIBETONZ] ENABLE\n");
 		gpio_set_value(OMAP_GPIO_VIBTONE_EN, GPIO_LEVEL_HIGH);
 	}
@@ -239,6 +239,13 @@ int init_module(void)
 
 	nRet = sysfs_create_file(vibetonz_kobj,
 				  &dev_attr_pwmvalue.attr);
+	if (nRet) {
+		printk(KERN_ERR "sysfs_create_file failed: %d\n", nRet);
+		return nRet;
+	}
+
+	nRet = sysfs_create_file(vibetonz_kobj,
+				  &dev_attr_pwmvalue_intensity.attr);
 	if (nRet) {
 		printk(KERN_ERR "sysfs_create_file failed: %d\n", nRet);
 		return nRet;
