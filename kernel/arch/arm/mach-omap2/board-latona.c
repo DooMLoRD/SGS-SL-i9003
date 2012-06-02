@@ -494,11 +494,6 @@ static struct opp_frequencies opp_freq_add_table[] __initdata = {
 	.iva =  800000000,
 	.ena = OMAP3630_CONTROL_FUSE_OPP1_5G_VDD1,
   }, 	
-    {
-	.mpu = 1380000000,
-	.iva =  800000000,
-	.ena = OMAP3630_CONTROL_FUSE_OPP1_6G_VDD1,
-  },
   { 0, 0, 0 },
 };
 
