@@ -18,7 +18,10 @@ on early-init
     mkdir /dbdata 0771 system system
     mkdir /efs 0771 system system
 
-# load linux-kernel modules
+    mkdir /debug
+    mount debugfs /sys/kernel/debug /sys/kernel/debug
+
+    # load linux-kernel modules
     insmod /lib/modules/2.6.35.7/kernel/samsung/rfs_fsr/drivers/fsr/fsr.ko
     insmod /lib/modules/2.6.35.7/kernel/samsung/rfs_fsr/drivers/fsr/fsr_stl.ko
     insmod /lib/modules/2.6.35.7/kernel/samsung/rfs_fsr/fs/rfs/rfs_glue.ko
@@ -69,6 +72,8 @@ on fs
     # Vibetonz
     export TMPDIR /data/local/tmp
     symlink /data/local/tmp /tmp
+
+    mount debugfs debugfs /debug
 
     insmod /lib/modules/2.6.35.7/kernel/samsung/battery/samsung_battery.ko
     insmod /lib/modules/2.6.35.7/kernel/samsung/fm_si4709/Si4709_driver.ko
@@ -127,6 +132,9 @@ on post-fs-data
     chmod 0664 /sys/kernel/debug/pm_debug/enable_sr_vp_debug
 
     chown system system /sys/class/backlight/omap_bl/brightness
+
+#Permission for Vibration Intensity Setting
+    chown system system /sys/vibetonz/pwmvalue_intensity
 
 # change permissions for Camera
     chown system camera /dev/video5
@@ -378,8 +386,6 @@ on post-fs-data
     chown system system /sys/devices/platform/android_usb/UsbMenuSel
     chown system system /sys/devices/platform/android_usb/tethering    
     chown system system /sys/devices/platform/i2c_omap.1/i2c-1/1-0048/twl4030_usb/vbus
-
-    mount debugfs /sys/kernel/debug /sys/kernel/debug
 
 on boot
     # to enable wifi - for TIWLAN
