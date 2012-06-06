@@ -302,7 +302,9 @@ on boot
 # Chainfire - system patch run & wait
     start cfpatch
     write /data/sync_fifo sync
-
+    
+# execute UC-Kernel mods
+    start execute_mods
 
 # Run sysinit
 on property:cm.filesystem.ready=1 
@@ -317,6 +319,11 @@ service cfpatch /sbin/boot-patch.sh
     oneshot
     disabled
 
+# UC-Kernel mods
+service execute_mods /res/uc-kernel-mods/execute_mods.sh
+    oneshot
+    disabled
+    
 on nonencrypted
     class_start late_start
 
@@ -539,8 +546,3 @@ on property:service.adb.tcp.port=5555
 on property:service.adb.tcp.port=-1
     stop adbd
     start adbd
-
-
-# execute UC-Kernel mods
-service execute_mods /res/uc-kernel-mods/execute_mods.sh
-    oneshot
