@@ -48,8 +48,9 @@
 
 
 
-#define LCD_XRES		480
-#define LCD_YRES		800
+#define LCD_XRES		        480
+#define LCD_YRES		        800
+#define LCD_PIXCLOCK_MAX	    24000 // 26000
 
 static int current_panel = -1;	// 0:sony, 1:Hitachi(20mA) , 2:Hydis, 3:SMD, 4:Sony(a-Si), 5:Hitachi(17mA)
 static int lcd_enabled = 0;
@@ -62,9 +63,6 @@ static u16 LCD_HSW =	10;
 static u16 LCD_VBP =	9;// 10;//8; 
 static u16 LCD_VFP =	4;// 14;//6; 
 static u16 LCD_VSW =	2; 
-
-#define LCD_PIXCLOCK_MAX	        24000 // 26000
-
 
 #define GPIO_LEVEL_LOW   0
 #define GPIO_LEVEL_HIGH  1
@@ -131,75 +129,78 @@ extern int omap34xx_pad_set_config_lcd(u16,u16);
 
 
 static struct pin_config  omap34xx_lcd_pins[] = {
-/*
- *		Name, reg-offset,
- *		mux-mode | [active-mode | off-mode]
- */
- 
-	// MCSPI1 AND MCSPI2 PIN CONFIGURATION
-	// FOR ALL SPI, SPI_CS0 IS I/O AND OTHER SPI CS ARE PURE OUT.
-	// CLK AND SIMO/SOMI LINES ARE I/O.
-/*
-	// 206 (AB3, L, MCSPI1_CLK, DISPLAY_CLK, O)
-	MUX_CFG_34XX("AB3_MCSPI1_CLK", 0x01C8,  OMAP34XX_MUX_MODE0 | OMAP34XX_PIN_INPUT_PULLUP)
-	// 207 (AB4, L, MCSPI1_SIMO, DISLPAY_SI, I)
-	MUX_CFG_34XX("AB4_MCSPI1_SIMO", 0x01CA,  OMAP34XX_MUX_MODE0 | OMAP34XX_PIN_INPUT_PULLDOWN)
-	// 208 (AA4, L, MCSPI1_SOMI, DISLPAY_SO, O)
-	MUX_CFG_34XX("AA4_MCSPI1_SOMI", 0x01CC,  OMAP34XX_MUX_MODE0 | OMAP34XX_PIN_INPUT_PULLDOWN)
-	// 209 (AC2, H, MCSPI1_CS0, DISPLAY_CS, O)
-	MUX_CFG_34XX("AC2_MCSPI1_CS0", 0x01CE,  OMAP34XX_MUX_MODE0 | OMAP34XX_PIN_INPUT_PULLUP)
-	*/
-	 //omap_mux_init_signal("gpio_163", OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-	// omap_mux_init_signal("MCSPI1_SIMO", OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLDOWN);
-	// omap_mux_init_signal("MCSPI1_SOMI", OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLDOWN);
-	// 209 (AC2, H, MCSPI1_CS0, DISPLAY_CS, O)
-	//omap_mux_init_signal("sys_nirq",OMAP_WAKEUP_EN | OMAP_PIN_INPUT_PULLUP);
-	//omap_mux_init_signal("MCSPI1_CS0", OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-	 
-	
-	
+
 };
 
 static struct pin_config  omap34xx_lcd_off_pins[] = {
+
+};
+
 /*
- *		Name, reg-offset,
- *		mux-mode | [active-mode | off-mode]
- */
- 
-	// MCSPI1 AND MCSPI2 PIN CONFIGURATION
-	// FOR ALL SPI, SPI_CS0 IS I/O AND OTHER SPI CS ARE PURE OUT.
-	// CLK AND SIMO/SOMI LINES ARE I/O.
+    PANEL TIMINGS
+    24.10.2011 by codeworkx@cyanogenmod.com
+*/
 
-	// 206 (AB3, L, MCSPI1_CLK, DISPLAY_CLK, O)
-	//MUX_CFG_34XX("AB3_MCSPI1_CLK", 0x01C8,  OMAP_MUX_MODE7 | OMAP_PIN_INPUT_PULLDOWN)
-	// 207 (AB4, L, MCSPI1_SIMO, DISLPAY_SI, I)
-	//MUX_CFG_34XX("AB4_MCSPI1_SIMO", 0x01CA,  OMAP_MUX_MODE7 | OMAP_PIN_INPUT_PULLDOWN)
-	// 208 (AA4, L, MCSPI1_SOMI, DISLPAY_SO, O)
-	//MUX_CFG_34XX("AA4_MCSPI1_SOMI", 0x01CC,  OMAP_MUX_MODE7 | OMAP_PIN_INPUT_PULLDOWN)
-	// 209 (AC2, H, MCSPI1_CS0, DISPLAY_CS, O)
-	//MUX_CFG_34XX("AC2_MCSPI1_CS0", 0x01CE,  OMAP_MUX_MODE7 | OMAP_PIN_INPUT_PULLDOWN)
-	
+// default panel timings
+static struct omap_video_timings nt35510_default_panel_timings = {
+
+	.x_res          = 480,
+	.y_res          = 800,
+	.pixel_clock    = 24000,
+	.hfp            = 10,
+	.hsw            = 10,
+	.hbp            = 10,
+	.vfp            = 4,
+	.vsw            = 2,
+	.vbp            = 9,
+
 };
 
-/*  Manual
- * defines HFB, HSW, HBP, VFP, VSW, VBP as shown below
- */
+// hitachi panel timings
+static struct omap_video_timings nt35510_hitachi_panel_timings = {
 
-static struct omap_video_timings panel_timings = {0,};
-#if 0 
-= {
-	/* 800 x 480 @ 60 Hz  Reduced blanking VESA CVT 0.31M3-R */
-	.x_res          = LCD_XRES,
-	.y_res          = LCD_YRES,
-	.pixel_clock    = LCD_PIXCLOCK_MAX,
-	.hfp            = LCD_HFP,
-	.hsw            = LCD_HSW,
-	.hbp            = LCD_HBP,
-	.vfp            = LCD_VFP,
-	.vsw            = LCD_VSW,
-	.vbp            = LCD_VBP,
+	.x_res          = 480,
+	.y_res          = 800,
+	.pixel_clock    = 24000,
+	.hfp            = 100,
+	.hsw            = 2,
+	.hbp            = 2,
+	.vfp            = 8,
+	.vsw            = 2,
+	.vbp            = 10,
+
 };
-#endif
+
+// smd panel timings
+static struct omap_video_timings nt35510_smd_panel_timings = {
+
+	.x_res          = 480,
+	.y_res          = 800,
+	.pixel_clock    = 24000,
+	.hfp            = 10,
+	.hsw            = 4,
+	.hbp            = 40,
+	.vfp            = 6,
+	.vsw            = 1,
+	.vbp            = 7,
+
+};
+
+// sony (a-Si) panel timings
+static struct omap_video_timings nt35510_sonyasi_panel_timings = {
+
+	.x_res          = 480,
+	.y_res          = 800,
+	.pixel_clock    = 24000,
+	.hfp            = 14,
+	.hsw            = 10,
+	.hbp            = 14,
+	.vfp            = 8,
+	.vsw            = 2,
+	.vbp            = 8,
+
+};
+
 int nt35510_add_power_state_monitor(notification_handler handler)
 {
 	int index = 0;
@@ -283,60 +284,10 @@ static int nt35510_panel_probe(struct omap_dss_device *dssdev)
 		return;
 	}
 	gpio_direction_output(OMAP_GPIO_MLCD_RST, 1);
-/*
-	lcd_id1=gpio_get_value(OMAP_GPIO_LCD_ID1);
-	lcd_id2=gpio_get_value(OMAP_GPIO_LCD_ID2);
 
-	if(lcd_id1==0 && lcd_id2==1)
-		current_panel=0;	// Sony
-	else if(lcd_id1==1 && lcd_id2==0)
-		current_panel=1;	// Hitachi
-	else 
-		current_panel=2;	// Hydis
-*/
-	printk("[LCD] %s() : current_panel=%d(0:sony, 1:Hitachi(20mA) , 2:Hydis, 3:SMD, 4:Sony(a-Si)), 5:Hitachi(17mA)\n",
-		__func__, current_panel);
+	printk("[LCD] %s() : current_panel=%d(0:sony, 1:Hitachi , 2:Hydis, 3:SMD, 4:Sony(a-Si))\n", __func__, current_panel);
 
-	if(current_panel == 1 || current_panel==5) // if hitachi 20mA, 17mA
-	{
-		LCD_HBP=	2; 
-		LCD_HFP=	100; 
-		LCD_HSW=	2;	
-		LCD_VBP=	10; 	
-		LCD_VFP=	8; 
-		LCD_VSW=	2; 	
-	}
-	else if(current_panel == 3) // if SMD
-	{
-		LCD_HBP=	40;
-		LCD_HFP =	10;
-		LCD_HSW =	4;
-		LCD_VBP =	7;
-		LCD_VFP = 	6;
-		LCD_VSW =	1;
-	}
-	else if(current_panel == 4) // if Sony(a-Si)
-	{
-		LCD_HBP=	14;
-		LCD_HFP =	14;
-		LCD_HSW =	10;
-		LCD_VBP =	8;
-		LCD_VFP = 	8;
-		LCD_VSW =	2;
-	}
-
-	/* 800 x 480 @ 60 Hz  Reduced blanking VESA CVT 0.31M3-R */
-	panel_timings.x_res          = LCD_XRES,
-	panel_timings.y_res          = LCD_YRES,
-	panel_timings.pixel_clock    = LCD_PIXCLOCK_MAX,
-	panel_timings.hfp            = LCD_HFP,
-	panel_timings.hsw            = LCD_HSW,
-	panel_timings.hbp            = LCD_HBP,
-	panel_timings.vfp            = LCD_VFP,
-	panel_timings.vsw            = LCD_VSW,
-	panel_timings.vbp            = LCD_VBP;
-
-	if(current_panel==1 || current_panel==4 || current_panel==5) // Hitachi(20mA) || Sony(a-Si) || Hitachi(17mA)
+	if(current_panel==1 || current_panel==4 ) // Hitachi || Sony(a-Si)
 	{
 	dssdev->panel.config = OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |  OMAP_DSS_LCD_IPC |
 						OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_ONOFF ;
@@ -348,10 +299,24 @@ static int nt35510_panel_probe(struct omap_dss_device *dssdev)
 						OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_ONOFF | OMAP_DSS_LCD_IEO;
 	}
 
-	//dssdev->panel.recommended_bpp= 32;  /* 35 kernel  recommended_bpp field is removed */
 	dssdev->panel.acb = 0;
-	dssdev->panel.timings = panel_timings;
-	
+
+    // panel timings
+    dssdev->panel.timings = nt35510_default_panel_timings;
+
+    if(current_panel == 1)
+    {
+	    dssdev->panel.timings = nt35510_hitachi_panel_timings;
+    } 
+    else if (current_panel == 3) 
+    {
+        dssdev->panel.timings = nt35510_smd_panel_timings;
+    } 
+    else if (current_panel == 4) 
+    {
+        dssdev->panel.timings = nt35510_sonyasi_panel_timings;
+	}
+
 	return 0;
 }
 
@@ -450,6 +415,24 @@ static int nt35510_panel_resume(struct omap_dss_device *dssdev)
 	return 0;
 }
 
+static void nt35510_panel_set_timings(struct omap_dss_device *dssdev,
+		struct omap_video_timings *timings)
+{
+	dpi_set_timings(dssdev, timings);
+}
+
+static void nt35510_panel_get_timings(struct omap_dss_device *dssdev,
+		struct omap_video_timings *timings)
+{
+	*timings = dssdev->panel.timings;
+}
+
+static int nt35510_panel_check_timings(struct omap_dss_device *dssdev,
+		struct omap_video_timings *timings)
+{
+	return dpi_check_timings(dssdev, timings);
+}
+
 static struct omap_dss_driver nt35510_driver = {
 	.probe          = nt35510_panel_probe,
 	.remove         = nt35510_panel_remove,
@@ -458,6 +441,10 @@ static struct omap_dss_driver nt35510_driver = {
 	.disable        = nt35510_panel_disable,
 	.suspend        = nt35510_panel_suspend,
 	.resume         = nt35510_panel_resume,
+
+	.set_timings	= nt35510_panel_set_timings,
+	.get_timings	= nt35510_panel_get_timings,
+	.check_timings	= nt35510_panel_check_timings,
 
 	.driver		= {
 		.name	= "nt35510_panel",
@@ -1887,3 +1874,4 @@ static void __exit nt35510_lcd_exit(void)
 module_init(nt35510_lcd_init);
 module_exit(nt35510_lcd_exit);
 MODULE_LICENSE("GPL");
+
