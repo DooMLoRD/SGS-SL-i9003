@@ -20,4 +20,4 @@ if [ -d /emmc/.android_secure ]; then
 #	fi
 fi
 
-umount /dbdata
+umount /datadata
