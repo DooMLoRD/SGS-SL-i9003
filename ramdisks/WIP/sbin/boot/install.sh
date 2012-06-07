@@ -42,7 +42,7 @@ then
     toolbox rm /data/cfroot/*
     toolbox rmdir /data/cfroot
     toolbox rm /system/cfroot/*
-#    echo 1 > /system/cfroot/release-100-I9003XXKPQ-
+    echo 1 > /system/cfroot/release-100-I9003XXKPQ-
 
 # Remount system RO
     /sbin/ext/busybox mount -t rootfs -o remount,ro rootfs
