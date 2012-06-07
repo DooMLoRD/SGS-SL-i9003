@@ -89,6 +89,9 @@ on post-fs
     write /proc/sys/kernel/sched_wakeup_granularity_ns 2000000
     write /proc/sys/kernel/sched_compat_yield 1
     write /proc/sys/kernel/sched_child_runs_first 0
+    
+# Disables multiple "No" button in confirmation, not required in full touch recovery by Team UtterChaos    
+    write /sdcard/clockworkmod/.one_confirm 0
 	
 on boot
     ifup lo
