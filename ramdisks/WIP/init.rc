@@ -34,6 +34,13 @@ loglevel 3
     symlink /system/etc /etc
     symlink /sys/kernel/debug /d
 
+# for boot mode
+    start adbd
+    mount /tmp /tmp tmpfs
+    exec /sbin/recovery
+    umount /tmp
+    stop adbd
+    
 # Right now vendor lives on the same filesystem as system,
 # but someday that may change.
     symlink /system/vendor /vendor

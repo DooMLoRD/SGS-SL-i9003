@@ -14,6 +14,7 @@ if busybox grep -q bootmode=2 /proc/cmdline || busybox grep -q androidboot.mode=
     # recovery boot
     busybox cp recovery.rc init.rc
 	busybox rm init.latona.rc
+	busybox cp /sbin/cwm /sbin/recovery
 fi
 
 if busybox grep -q bootmode=5 /proc/cmdline || busybox grep -q androidboot.mode=usb_charger /proc/cmdline ; then
