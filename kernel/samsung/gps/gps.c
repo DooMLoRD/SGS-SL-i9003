@@ -116,7 +116,7 @@ static ssize_t gps_cntl_name_show(struct device *dev,
 static struct device_attribute gps_en_attr[2] = {
 	{
 		.attr.name = "value",
-		.attr.mode = 0664,
+		.attr.mode = 0666,
 		.show = gps_en_value_show,
 		.store = gps_en_value_store,
 	},
@@ -132,7 +132,7 @@ static struct device_attribute gps_en_attr[2] = {
 static struct device_attribute gps_nrst_attr[2] = {
 	{
 		.attr.name = "value",
-		.attr.mode = 0664,
+		.attr.mode = 0666,
 		.show = gps_nrst_value_show,
 		.store = gps_nrst_value_store,
 	},
@@ -148,7 +148,7 @@ static struct device_attribute gps_nrst_attr[2] = {
 static struct device_attribute gps_cntl_attr[2] = {
 	{
 		.attr.name = "value",
-		.attr.mode = 0664,
+		.attr.mode = 0666,
 		.show = gps_cntl_value_show,
 		.store = gps_cntl_value_store,
 	},
