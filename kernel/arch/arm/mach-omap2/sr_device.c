@@ -59,6 +59,47 @@ static struct omap_device_pm_latency omap_sr_latency[] = {
 	},
 };
 
+static void cal_reciprocal(u32 sensor, u32 *sengain, u32 *rnsen)
+{
+	u32 gn, rn, mul;
+
+	for (gn = 0; gn < GAIN_MAXLIMIT; gn++) {
+		mul = 1 << (gn + 8);
+		rn = mul / sensor;
+		if (rn < R_MAXLIMIT) {
+			*sengain = gn;
+			*rnsen = rn;
+		}
+	}
+}
+
+static u32 cal_opp5_nvalue(u32 prev_nvalue)
+{
+	u32 senpgain, senngain;
+	u32 rnsenp, rnsenn;
+	u32 prev_senPgain, prev_senNgain;
+	u32 prev_senPRN, prev_senNRN;
+	u32 nAdj,sennval,senpval;
+
+	prev_senPgain = (prev_nvalue & 0x00f00000) >> 0x14;
+	prev_senNgain = (prev_nvalue & 0x000f0000) >> 0x10;
+
+	prev_senPRN = (prev_nvalue & 0x0000ff00) >> 0x8;
+	prev_senNRN = (prev_nvalue & 0x000000ff);
+
+	senpval = ((1 << (prev_senPgain + 8))/prev_senPRN) + 235;
+	sennval = ((1 << (prev_senNgain + 8))/prev_senNRN) + 385;
+
+	/* Calculating the gain and reciprocal of the SenN and SenP values */
+	cal_reciprocal(senpval, &senpgain, &rnsenp);
+	cal_reciprocal(sennval, &senngain, &rnsenn);
+
+	return (senpgain << NVALUERECIPROCAL_SENPGAIN_SHIFT) |
+		(senngain << NVALUERECIPROCAL_SENNGAIN_SHIFT) |
+		(rnsenp << NVALUERECIPROCAL_RNSENP_SHIFT) |
+		(rnsenn << NVALUERECIPROCAL_RNSENN_SHIFT);
+}
+
 /* Read EFUSE values from control registers for OMAP3430 */
 static void __init sr_read_efuse(struct omap_sr_dev_data *dev_data,
 				struct omap_sr_data *sr_data)
@@ -113,8 +154,18 @@ static void __init sr_read_efuse(struct omap_sr_dev_data *dev_data,
 				__raw_readb(ctrl_base + offset + 1) << 8 |
 				__raw_readb(ctrl_base + offset + 2) << 16;
 		} else {
-			dev_data->volt_data[i].sr_nvalue = omap_ctrl_readl(
-				dev_data->efuse_nvalues_offs[i]);
+			if (i > 10) {
+				// The Latona board does not have an eFuse for OPP5.
+				// We have to calculate a rough approximation of the nValue for this OPP.
+				dev_data->volt_data[i].sr_nvalue = cal_opp5_nvalue(dev_data->volt_data[i-1].sr_nvalue);
+			} else {
+				dev_data->volt_data[i].sr_nvalue = omap_ctrl_readl(
+					dev_data->efuse_nvalues_offs[i]);
+			}
+			pr_err("%s: dom %s[%d]: using ntarget %d\n",
+				__func__,
+				dev_data->vdd_name, i,
+				dev_data->volt_data[i].sr_nvalue);
 		}
 	}
 	if (cpu_is_omap44xx())

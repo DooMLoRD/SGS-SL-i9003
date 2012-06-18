@@ -154,6 +154,9 @@ extern struct dentry *sr_dbg_dir;
 
 /* TODO:3630/OMAP4 values if it has to come from this file */
 
+#define GAIN_MAXLIMIT 16
+#define R_MAXLIMIT 256
+
 #ifdef CONFIG_OMAP_SMARTREFLEX_TESTING
 #define SR_TESTING_NVALUES	1
 #else
