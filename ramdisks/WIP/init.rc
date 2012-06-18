@@ -34,13 +34,6 @@ loglevel 3
     symlink /system/etc /etc
     symlink /sys/kernel/debug /d
 
-# for boot mode
-    start adbd
-    mount /tmp /tmp tmpfs
-    exec /sbin/recovery
-    umount /tmp
-    stop adbd
-    
 # Right now vendor lives on the same filesystem as system,
 # but someday that may change.
     symlink /system/vendor /vendor
@@ -54,6 +47,12 @@ loglevel 3
     mkdir /data 0771 system system
     mkdir /cache 0771 system cache
     mkdir /config 0500 root root
+
+
+# for boot mode
+    mount /tmp /tmp tmpfs
+    exec /sbin/recovery
+    umount /tmp
 
     # Directory for putting things only root should see.
     mkdir /mnt/secure 0700 root root
