@@ -78,6 +78,9 @@ on post-fs
     write /proc/sys/kernel/sched_wakeup_granularity_ns 2000000
     write /proc/sys/kernel/sched_compat_yield 1
     write /proc/sys/kernel/sched_child_runs_first 0
+    
+# Disables multiple "No" button in confirmation, not required in full touch recovery by Team UtterChaos    
+    write /sdcard/clockworkmod/.one_confirm 0    
 
     insmod /lib/modules/2.6.35.7/kernel/samsung/j4fs/j4fs.ko
     mount j4fs /dev/block/stl6 /mnt/.lfs
