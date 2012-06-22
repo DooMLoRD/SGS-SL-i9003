@@ -49,6 +49,9 @@ on fs
     mount rfs /dev/block/stl9 /system check=no
     mount vfat /dev/block/mmcblk1p1 /sdcard
     mount vfat /dev/block/mmcblk0p1 /emmc
+    
+# Disables multiple "No" button in confirmation, not required in full touch recovery by Team UtterChaos    
+    write /sdcard/clockworkmod/.one_confirm 0      
 
 # SEC_DMCRYPT for MC_CRYPT_ROOT before apply_disk_policy or apply_sec_devenc_init
     #chown system system /efs
@@ -77,10 +80,8 @@ on post-fs
     write /proc/sys/kernel/sched_latency_ns 10000000
     write /proc/sys/kernel/sched_wakeup_granularity_ns 2000000
     write /proc/sys/kernel/sched_compat_yield 1
-    write /proc/sys/kernel/sched_child_runs_first 0
-    
-# Disables multiple "No" button in confirmation, not required in full touch recovery by Team UtterChaos    
-    write /sdcard/clockworkmod/.one_confirm 0    
+    write /proc/sys/kernel/sched_child_runs_first 0   
+
 
     insmod /lib/modules/2.6.35.7/kernel/samsung/j4fs/j4fs.ko
     mount j4fs /dev/block/stl6 /mnt/.lfs
