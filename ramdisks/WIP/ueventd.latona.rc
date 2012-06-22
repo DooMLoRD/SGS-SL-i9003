@@ -23,6 +23,4 @@
 /dev/video10		      0660	 system		system
 /dev/omap-previewer	      0660	 system		system
 /dev/omap-resizer	      0660	 system		system
-/dev/pvrsrvkm		      0666	 system		system
-/dev/usb_mtp_gadget	      0660	 system		system
 /dev/fmradio		      0660	 system		system
